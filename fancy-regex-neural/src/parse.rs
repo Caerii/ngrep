@@ -30,7 +30,7 @@ use core::convert::TryInto;
 use core::usize;
 use regex_syntax::escape_into;
 
-use crate::{codepoint_len, CompileError, Error, Expr, ParseError, Result, MAX_RECURSION};
+use crate::{codepoint_len, CompileError, Error, Expr, NeuralExpr, ParseError, Result, MAX_RECURSION};
 use crate::{Assertion, LookAround::*};
 
 const FLAG_CASEI: u32 = 1;
@@ -271,6 +271,7 @@ impl<'a> Parser<'a> {
             }
             b'+' | b'*' | b'?' | b'|' | b')' => Ok((ix, Expr::Empty)),
             b'[' => self.parse_class(ix),
+            b'~' => self.parse_neural(ix),
             b => {
                 // TODO: maybe want to match multiple codepoints?
                 let next = ix + codepoint_len(b);
@@ -514,6 +515,36 @@ impl<'a> Parser<'a> {
         } else {
             Err(Error::ParseError(ix, ParseError::InvalidCodepointValue))
         }
+    }
+
+    fn parse_neural(&mut self, ix: usize) -> Result<(usize, Expr)> {
+        let bytes = self.re.as_bytes();
+        let mut ix = ix + 1;
+        let mut text = String::new();
+
+        if bytes.get(ix) != Some(&b'(') {
+            return Err(Error::ParseError(ix, ParseError::InvalidNeural));
+        }
+
+        // XXX: handle ')' in text
+        ix = ix + 1;
+        while ix < bytes.len() && bytes.get(ix) != Some(&b')') {
+            text.push(bytes[ix] as char);
+            ix += 1;
+        }
+
+        if bytes.get(ix) != Some(&b')') {
+            return Err(Error::ParseError(ix, ParseError::InvalidNeural));
+        }
+
+        Ok((
+            ix + 1,
+            Expr::Neural (
+                NeuralExpr {
+                    value: text,
+                }
+            )
+        ))
     }
 
     fn parse_class(&mut self, ix: usize) -> Result<(usize, Expr)> {

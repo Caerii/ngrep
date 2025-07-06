@@ -1,14 +1,8 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use candle_core::Tensor;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod converters;
+pub mod matchers;
+pub mod models;
+pub mod ng;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub type Embedding = Tensor;

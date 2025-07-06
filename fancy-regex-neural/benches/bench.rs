@@ -61,7 +61,7 @@ fn analyze_literal_re(c: &mut Criterion) {
 fn run_backtrack(c: &mut Criterion) {
     let tree = Expr::parse_tree("^.*?(([ab]+)\\1b)").unwrap();
     let a = analyze(&tree).unwrap();
-    let p = compile(&a).unwrap();
+    let p = compile(&a, None).unwrap();
     c.bench_function("run_backtrack", |b| {
         b.iter(|| {
             let result = run_default(&p, "babab", 0).unwrap();
@@ -76,7 +76,7 @@ fn run_backtrack(c: &mut Criterion) {
 fn run_tricky(c: &mut Criterion) {
     let tree = Expr::parse_tree("(a|b|ab)*bc").unwrap();
     let a = analyze(&tree).unwrap();
-    let p = compile(&a).unwrap();
+    let p = compile(&a, None).unwrap();
     let mut s = String::new();
     for _ in 0..28 {
         s.push_str("ab");
@@ -88,7 +88,7 @@ fn run_tricky(c: &mut Criterion) {
 fn run_backtrack_limit(c: &mut Criterion) {
     let tree = Expr::parse_tree("(?i)(a|b|ab)*(?=c)").unwrap();
     let a = analyze(&tree).unwrap();
-    let p = compile(&a).unwrap();
+    let p = compile(&a, None).unwrap();
     let s = "abababababababababababababababababababababababababababab";
     c.bench_function("run_backtrack_limit", |b| {
         b.iter(|| run_default(&p, &s, 0).unwrap_err())

@@ -55,6 +55,8 @@ pub enum ParseError {
     InvalidGroupName,
     /// Invalid group id in escape sequence
     InvalidGroupNameBackref(String),
+    /// Invalid neural
+    InvalidNeural,
 }
 
 /// An error as the result of compiling a regex.
@@ -115,6 +117,7 @@ impl fmt::Display for ParseError {
                 write!(f, "Invalid group name in back reference: {}", s)
             }
             ParseError::TargetNotRepeatable => write!(f, "Target of repeat operator is invalid"),
+            ParseError::InvalidNeural => write!(f, "Could not parse neural"),
         }
     }
 }

@@ -38,6 +38,7 @@ pub struct Info<'a> {
     pub(crate) hard: bool,
     pub(crate) expr: &'a Expr,
     pub(crate) children: Vec<Info<'a>>,
+    pub(crate) neural: bool,
 }
 
 impl<'a> Info<'a> {
@@ -75,7 +76,13 @@ impl<'a> Analyzer<'a> {
         let mut min_size = 0;
         let mut const_size = false;
         let mut hard = false;
+        let mut neural = false;
         match *expr {
+            Expr::Neural(..) => {
+                min_size = 1;
+                hard = true;
+                neural = true;
+            },
             Expr::Assertion(assertion) if assertion.is_hard() => {
                 const_size = true;
                 hard = true;
@@ -99,6 +106,7 @@ impl<'a> Analyzer<'a> {
                     min_size += child_info.min_size;
                     const_size &= child_info.const_size;
                     hard |= child_info.hard;
+                    neural |= child_info.neural;
                     children.push(child_info);
                 }
             }
@@ -107,12 +115,14 @@ impl<'a> Analyzer<'a> {
                 min_size = child_info.min_size;
                 const_size = child_info.const_size;
                 hard = child_info.hard;
+                neural = child_info.neural;
                 children.push(child_info);
                 for child in &v[1..] {
                     let child_info = self.visit(child)?;
                     const_size &= child_info.const_size && min_size == child_info.min_size;
                     min_size = min(min_size, child_info.min_size);
                     hard |= child_info.hard;
+                    neural |= child_info.neural;
                     children.push(child_info);
                 }
             }
@@ -126,6 +136,7 @@ impl<'a> Analyzer<'a> {
                 // group. E.g. with `(x|xy)\1` and input `xyxy`, `x` matches but then the backref
                 // doesn't, so we have to backtrack and try `xy`.
                 hard = child_info.hard | self.backrefs.contains(group);
+                neural = child_info.neural; // XXX: not sure about this
                 children.push(child_info);
             }
             Expr::LookAround(ref child, _) => {
@@ -133,6 +144,7 @@ impl<'a> Analyzer<'a> {
                 // min_size = 0
                 const_size = true;
                 hard = true;
+                neural = child_info.neural;
                 children.push(child_info);
             }
             Expr::Repeat {
@@ -142,6 +154,7 @@ impl<'a> Analyzer<'a> {
                 min_size = child_info.min_size * lo;
                 const_size = child_info.const_size && lo == hi;
                 hard = child_info.hard;
+                neural = child_info.neural;
                 children.push(child_info);
             }
             Expr::Delegate { size, .. } => {
@@ -160,6 +173,7 @@ impl<'a> Analyzer<'a> {
                 min_size = child_info.min_size;
                 const_size = child_info.const_size;
                 hard = true; // TODO: possibly could weaken
+                neural = child_info.neural;
                 children.push(child_info);
             }
             Expr::KeepOut => {
@@ -196,6 +210,10 @@ impl<'a> Analyzer<'a> {
                     // if the condition's size plus the truth branch's size is equal to the false branch's size then it's const size
                     && child_info_condition.min_size + child_info_truth.min_size == child_info_false.min_size;
 
+                neural |= child_info_condition.neural;
+                neural |= child_info_truth.neural;
+                neural |= child_info_false.neural;
+
                 children.push(child_info_condition);
                 children.push(child_info_truth);
                 children.push(child_info_false);
@@ -210,6 +228,7 @@ impl<'a> Analyzer<'a> {
             min_size,
             const_size,
             hard,
+            neural
         })
     }
 }

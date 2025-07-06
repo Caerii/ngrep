@@ -515,6 +515,37 @@ impl<'r, 'h> Iterator for SplitN<'r, 'h> {
     }
 }
 
+/// A trait for a Neural Matcher.
+/// 
+/// Trait used to define a Neural Matcher that can match the current text 
+/// that is being processed by the regex engine, against a value specified
+/// with a neural expression `~(value)`. 
+/// 
+/// Each Neural Matcher is linked to a specific neural expression through the
+/// `NeuralMatcherFactory` trait.
+pub trait NeuralMatcher: Debug {
+    /// Whether the text matches the value of this Neural Matcher.
+    fn matches(&self, text: &str) -> bool;
+    
+    /// Whether the current text or future extensions could match the pattern 
+    /// of this Neural Matcher. As soon as this check fails, the search with 
+    /// the current text is aborted, and the Regex Engine will continue.
+    fn might_match(&self, text: &str) -> bool;
+}
+
+/// Result of parsing a Neural Expression of the form `~(value)`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct NeuralExpr {
+    /// The value of the Neural Expression.
+    pub value: String,
+}
+
+/// The factory for creating a Neural Matcher from a Neural Expression.
+pub trait NeuralMatcherFactory: Debug {
+    /// Create a Neural Matcher from a Neural Expression.
+    fn matcher_for(&self, expr: &NeuralExpr) -> std::result::Result<Arc<dyn NeuralMatcher>, std::io::Error>;
+}
+
 impl<'r, 'h> core::iter::FusedIterator for SplitN<'r, 'h> {}
 
 #[derive(Clone, Debug)]
@@ -524,6 +555,7 @@ struct RegexOptions {
     backtrack_limit: usize,
     delegate_size_limit: Option<usize>,
     delegate_dfa_size_limit: Option<usize>,
+    neural_matcher: Option<Arc<dyn NeuralMatcherFactory>>
 }
 
 impl Default for RegexOptions {
@@ -534,6 +566,7 @@ impl Default for RegexOptions {
             backtrack_limit: 1_000_000,
             delegate_size_limit: None,
             delegate_dfa_size_limit: None,
+            neural_matcher: None
         }
     }
 }
@@ -595,6 +628,12 @@ impl RegexBuilder {
     /// delegate_dfa_size_limit`.
     pub fn delegate_dfa_size_limit(&mut self, limit: usize) -> &mut Self {
         self.0.delegate_dfa_size_limit = Some(limit);
+        self
+    }
+
+    /// Set the neural options.
+    pub fn neural_matcher(&mut self, neural_matcher: &Arc<dyn NeuralMatcherFactory>) -> &mut Self {
+        self.0.neural_matcher = Some(neural_matcher.clone());
         self
     }
 }
@@ -676,7 +715,7 @@ impl Regex {
             });
         }
 
-        let prog = compile(&info)?;
+        let prog = compile(&info, options.neural_matcher.as_ref())?;
         Ok(Regex {
             inner: RegexImpl::Fancy {
                 prog,
@@ -1464,6 +1503,8 @@ pub enum Expr {
         /// What to execute if the condition is false
         false_branch: Box<Expr>,
     },
+    /// Neural Expression
+    Neural(NeuralExpr)
 }
 
 /// Type of look-around assertion as used for a look-around expression.
@@ -1594,6 +1635,10 @@ impl Expr {
     /// Panics for expressions that are hard, i.e. can not be handled by the regex crate.
     pub fn to_str(&self, buf: &mut String, precedence: u8) {
         match *self {
+            Expr::Neural (ref neural) => {
+                let value = &neural.value;
+                buf.push_str(format!("~({value})").as_str())
+            },
             Expr::Empty => (),
             Expr::Any { newline } => buf.push_str(if newline { "(?s:.)" } else { "." }),
             Expr::Literal { ref val, casei } => {

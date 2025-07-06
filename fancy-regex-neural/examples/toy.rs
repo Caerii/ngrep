@@ -80,7 +80,7 @@ fn main() {
             if let Some(re) = args.next() {
                 let tree = Expr::parse_tree(&re).unwrap();
                 let a = analyze(&tree).unwrap();
-                let p = compile(&a).unwrap();
+                let p = compile(&a, None).unwrap();
                 if let Some(s) = args.next() {
                     run_trace(&p, &s, 0).unwrap();
                 }
@@ -122,5 +122,5 @@ fn graph(re: &str) {
 fn prog(re: &str) -> Prog {
     let tree = Expr::parse_tree(re).expect("Expected parsing regex to work");
     let result = analyze(&tree).expect("Expected analyze to succeed");
-    compile(&result).expect("Expected compile to succeed")
+    compile(&result, None).expect("Expected compile to succeed")
 }

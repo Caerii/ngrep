@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.98"
+bincode = { version = "2.0.1", features = ["serde"] }
+candle-core = "0.9.0"
+memmap2 = "0.9.5"
+serde = "1.0.219"
+trie-rs = { version="0.4.2", features = ["rayon", "serde"] }

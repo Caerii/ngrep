@@ -23,6 +23,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::usize;
+use std::sync::Arc;
 use regex_automata::meta::Regex as RaRegex;
 use regex_automata::meta::{Builder as RaBuilder, Config as RaConfig};
 #[cfg(all(test, feature = "std"))]
@@ -30,7 +31,7 @@ use std::{collections::BTreeMap, sync::RwLock};
 
 use crate::analyze::Info;
 use crate::vm::{Insn, Prog};
-use crate::LookAround::*;
+use crate::{LookAround::*, NeuralMatcherFactory};
 use crate::{CompileError, Error, Expr, LookAround, RegexOptions, Result};
 
 // I'm thinking it probably doesn't make a lot of sense having this split
@@ -96,13 +97,15 @@ impl VMBuilder {
 struct Compiler {
     b: VMBuilder,
     options: RegexOptions,
+    neural_factory: Option<Arc<dyn NeuralMatcherFactory>>,
 }
 
 impl Compiler {
-    fn new(max_group: usize) -> Compiler {
+    fn new(max_group: usize, neural_factory: Option<&Arc<dyn NeuralMatcherFactory>>) -> Compiler {
         Compiler {
             b: VMBuilder::new(max_group),
             options: Default::default(),
+            neural_factory: neural_factory.cloned(),
         }
     }
 
@@ -113,6 +116,15 @@ impl Compiler {
         }
         match *info.expr {
             Expr::Empty => (),
+            Expr::Neural (ref neural) => {
+                let slot = self.b.newsave();
+                let neural_factory = self.neural_factory.as_ref().unwrap();
+
+                self.b.add(Insn::Neural{
+                    slot,
+                    matcher: neural_factory.matcher_for(neural).unwrap(),
+                });
+            },
             Expr::Literal { ref val, casei } => {
                 if !casei {
                     self.b.add(Insn::Lit(val.clone()));
@@ -290,7 +302,7 @@ impl Compiler {
         lo: usize,
         hi: usize,
         greedy: bool,
-        hard: bool,
+        hard: bool
     ) -> Result<()> {
         let child = &info.children[0];
         if lo == 0 && hi == 1 {
@@ -514,8 +526,8 @@ pub(crate) fn compile_inner(inner_re: &str, options: &RegexOptions) -> Result<Ra
 }
 
 /// Compile the analyzed expressions into a program.
-pub fn compile(info: &Info<'_>) -> Result<Prog> {
-    let mut c = Compiler::new(info.end_group);
+pub fn compile(info: &Info<'_>, neural_factory: Option<&Arc<dyn NeuralMatcherFactory>>) -> Result<Prog> {
+    let mut c = Compiler::new(info.end_group, neural_factory);
     c.visit(info, false)?;
     c.b.add(Insn::End);
     Ok(c.b.build())
@@ -611,7 +623,7 @@ mod tests {
         };
         let info = analyze(&tree).unwrap();
 
-        let mut c = Compiler::new(0);
+        let mut c = Compiler::new(0, None);
         // Force "hard" so that compiler doesn't just delegate
         c.visit(&info, true).unwrap();
         c.b.add(Insn::End);
@@ -705,7 +717,7 @@ mod tests {
     fn compile_prog(re: &str) -> Vec<Insn> {
         let tree = Expr::parse_tree(re).unwrap();
         let info = analyze(&tree).unwrap();
-        let prog = compile(&info).unwrap();
+        let prog = compile(&info, None).unwrap();
         prog.body
     }
 

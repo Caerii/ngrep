@@ -74,6 +74,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::usize;
+use std::str;
+use std::sync::Arc;
 use regex_automata::meta::Regex;
 use regex_automata::util::look::LookMatcher;
 use regex_automata::util::primitives::NonMaxUsize;
@@ -84,6 +86,7 @@ use crate::error::RuntimeError;
 use crate::prev_codepoint_ix;
 use crate::Assertion;
 use crate::Error;
+use crate::NeuralMatcher;
 use crate::Result;
 use crate::{codepoint_len, RegexOptions};
 
@@ -191,6 +194,13 @@ pub enum Insn {
     ContinueFromPreviousMatchEnd,
     /// Continue only if the specified capture group has already been populated as part of the match
     BackrefExistsCondition(usize),
+    /// Neural instruction
+    Neural {
+        /// The slot storing the matched len so far
+        slot: usize,
+        /// The neural matcher
+        matcher: Arc<dyn NeuralMatcher>,
+    }
 }
 
 /// Sequence of instructions for the VM to execute.
@@ -450,6 +460,34 @@ pub(crate) fn run(
                 println!("{}\t{} {:?}", ix, pc, prog.body[pc]);
             }
             match prog.body[pc] {
+                Insn::Neural {slot, ref matcher} => {
+                    if state.get(slot) == usize::MAX {
+                        state.save(slot, 0);
+                    }
+
+                    let matched = state.get(slot);
+                    let mut m = 1;
+                    loop {
+                        if ix + m > s.len() {
+                            break 'fail;
+                        }
+
+                        if s.is_char_boundary(ix + m) {
+                            let text = str::from_utf8(&s.as_bytes()[ix - matched..ix + m]).unwrap();
+                            
+                            if !matcher.might_match(text) {
+                                break 'fail;
+                            }
+                            if matcher.matches(text) {
+                                break
+                            }
+                        }
+                        m = m + 1;
+                    }
+                    
+                    state.save(slot, m + matched);
+                    ix = ix + m;
+                },
                 Insn::End => {
                     // save of end position into slot 1 is now done
                     // with an explicit group; we might want to

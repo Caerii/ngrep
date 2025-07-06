@@ -15,8 +15,13 @@ use crate::formatters::MatchFormatter;
 use crate::neural_matchers::EmbedNeuralMatcherFactory;
 use crate::Args;
 use embeddings::converters::{converts, Formats};
+use embeddings::ng;
 
-pub fn handle_import<P: AsRef<Path>>(config: &NgrepConfig, model_path: P) -> Result<()> {
+pub fn handle_import<P: AsRef<Path>>(
+    config: &mut NgrepConfig,
+    model_path: P,
+    name: &str,
+) -> Result<()> {
     let model_name: String = model_path
         .as_ref()
         .file_name()
@@ -25,11 +30,12 @@ pub fn handle_import<P: AsRef<Path>>(config: &NgrepConfig, model_path: P) -> Res
         .into();
 
     let output = PathBuf::from_iter([config.home(), model_name.into()]);
+    let output = output.with_extension(ng::NG_EXTENSION);
 
     converts(Formats::Text, model_path.as_ref(), output.as_ref())
-        .context("Error during import of the model")
+        .context("Error during import of the model")?;
 
-    // add the model as defailt
+    config.add_model(name, &output.to_string_lossy())
 }
 
 pub fn handle_config(config: &NgrepConfig) -> Result<()> {

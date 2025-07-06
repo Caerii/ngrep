@@ -42,11 +42,16 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Import a supported model converting to ng format
+    /// Import a supported model converting it to ng format
+    /// and making it the default one
     Import {
         /// Path to a model
         #[arg(short, long)]
         path: PathBuf,
+
+        /// Name of the model
+        #[arg(short, long)]
+        name: String,
     },
     /// Edit ~/.ngrep/config.toml
     Config,
@@ -64,12 +69,12 @@ fn reader(path: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn main() -> Result<(), Error> {
+    let mut config = NgrepConfig::load_or_init()?;
     let args: Args = Args::parse();
-    let config = NgrepConfig::load_or_init()?;
 
     if let Some(command) = args.command {
         return match command {
-            Commands::Import { path } => handle_import(&config, path),
+            Commands::Import { path, name } => handle_import(&mut config, path, &name),
             Commands::Config {} => handle_config(&config),
         };
     }

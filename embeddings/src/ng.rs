@@ -8,7 +8,7 @@ use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use trie_rs::Trie;
 
-const NG_EXTENSION: &str = "ng";
+pub const NG_EXTENSION: &str = "ng";
 const NG_MAGIC: &str = "NG";
 const NG_VERSION: u8 = 0x0;
 
@@ -18,7 +18,6 @@ pub fn to_file<P: AsRef<Path>>(
     output: P,
     embeddings: impl Iterator<Item = Result<WordEmbedding>>,
 ) -> Result<()> {
-    let output = output.as_ref().with_extension(NG_EXTENSION);
     let mut writer = BufWriter::new(File::create(output)?);
 
     let mut embeddings = embeddings.peekable();

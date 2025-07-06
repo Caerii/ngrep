@@ -1,3 +1,4 @@
+use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::{fs::File, io::Write};
@@ -8,7 +9,8 @@ use toml_edit::DocumentMut;
 
 const NGREP_HOME: &str = "~/.ngrep";
 const NGREP_CONFIG: &str = "config.toml";
-const NGREP_CONFIG_INIT: &str = r#" # ngrep conf
+const NGREP_CONFIG_INIT: &str = r#"
+# Ngrep configuration
 #
 # [model]
 # default = <name>           # set a model as default
@@ -16,6 +18,8 @@ const NGREP_CONFIG_INIT: &str = r#" # ngrep conf
 # [model.<name>]
 # path = <ng path>           # path to .ng model relative to ~/.ngrep
 # threshold = <number>       # default threshold for this model
+
+[ngrep]
 "#;
 
 #[derive(Debug)]
@@ -31,6 +35,10 @@ impl NgrepConfig {
                 .to_string_lossy()
                 .to_string(),
         )?;
+
+        if let Some(parent_dir) = path.parent() {
+            fs::create_dir_all(parent_dir)?;
+        }
 
         match File::create_new(&path) {
             Ok(mut handle) => handle.write_all(NGREP_CONFIG_INIT.as_bytes()),
@@ -112,5 +120,20 @@ impl NgrepConfig {
             ))?;
 
         Ok(PathBuf::from_iter([self.home(), model_path.into()]))
+    }
+
+    pub fn add_model(&mut self, name: &str, path: &str) -> Result<()> {
+        self.conf["model"] = toml_edit::table();
+        self.conf["model"][name] = toml_edit::table();
+        self.conf["model"][name]["path"] = toml_edit::value(path);
+
+        self.sync()
+    }
+
+    fn sync(&self) -> Result<()> {
+        let mut file = File::create(&self.path)?;
+
+        file.write_all(self.conf.to_string().as_bytes())
+            .context("Error updating configuration")
     }
 }

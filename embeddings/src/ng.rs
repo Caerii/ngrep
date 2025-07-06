@@ -187,7 +187,7 @@ impl FromLeBytes for f32 {
 
 fn decode_le_bytes_to_vec<T: FromLeBytes>(bytes: &[u8]) -> Result<Vec<T>> {
     if bytes.len() % T::BYTES != 0 {
-        return Err(Error::new(ErrorKind::InvalidInput, "Can't decode bytes"));
+        bail!("Can't decode bytes")
     }
 
     bytes

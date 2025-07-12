@@ -21,6 +21,7 @@ pub fn handle_import<P: AsRef<Path>>(
     config: &mut NgrepConfig,
     model_path: P,
     name: &str,
+    default: bool,
 ) -> Result<()> {
     let model_name: String = model_path
         .as_ref()
@@ -35,7 +36,7 @@ pub fn handle_import<P: AsRef<Path>>(
     converts(Formats::Text, model_path.as_ref(), output.as_ref())
         .context("Error during import of the model")?;
 
-    config.add_model(name, &output.to_string_lossy())
+    config.add_model(name, &output.to_string_lossy(), default)
 }
 
 pub fn handle_config(config: &NgrepConfig) -> Result<()> {

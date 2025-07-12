@@ -52,6 +52,10 @@ enum Commands {
         /// Name of the model
         #[arg(short, long)]
         name: String,
+
+        /// Set as default
+        #[arg(short, long, default_value = "false")]
+        default: bool,
     },
     /// Edit ~/.ngrep/config.toml
     Config,
@@ -74,7 +78,11 @@ fn main() -> Result<(), Error> {
 
     if let Some(command) = args.command {
         return match command {
-            Commands::Import { path, name } => handle_import(&mut config, path, &name),
+            Commands::Import {
+                path,
+                name,
+                default,
+            } => handle_import(&mut config, path, &name, default),
             Commands::Config {} => handle_config(&config),
         };
     }

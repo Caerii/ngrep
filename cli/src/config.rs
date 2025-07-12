@@ -5,7 +5,7 @@ use std::{fs::File, io::Write};
 
 use anyhow::{Context, Result};
 use expanduser::expanduser;
-use toml_edit::DocumentMut;
+use toml_edit::{DocumentMut, Item};
 
 const NGREP_HOME: &str = "~/.ngrep";
 const NGREP_CONFIG: &str = "config.toml";
@@ -122,11 +122,18 @@ impl NgrepConfig {
         Ok(PathBuf::from_iter([self.home(), model_path.into()]))
     }
 
-    pub fn add_model(&mut self, name: &str, path: &str) -> Result<()> {
-        self.conf["model"] = toml_edit::table();
-        self.conf["model"][name] = toml_edit::table();
-        self.conf["model"][name]["path"] = toml_edit::value(path);
+    pub fn add_model(&mut self, name: &str, path: &str, default: bool) -> Result<()> {
+        let model: &mut Item = match self.conf.as_table().contains_key("model") {
+            true => &mut self.conf["model"],
+            false => &mut toml_edit::table(),
+        };
 
+        model[name] = toml_edit::table();
+        model[name]["path"] = toml_edit::value(path);
+
+        if default || !model.as_table().unwrap().contains_key("default") {
+            model["default"] = toml_edit::value(name);
+        }
         self.sync()
     }
 

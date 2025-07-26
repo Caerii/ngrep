@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 
-use crate::config::NgrepConfig;
+use crate::config::{ModelConfig, NgrepConfig};
 use crate::formatters::MatchFormatter;
 use crate::neural_matchers::EmbedNeuralMatcherFactory;
 use crate::Args;
@@ -21,22 +21,30 @@ pub fn handle_import<P: AsRef<Path>>(
     config: &mut NgrepConfig,
     model_path: P,
     name: &str,
+    threshold: f64,
     default: bool,
 ) -> Result<()> {
-    let model_name: String = model_path
+    let model_file: String = model_path
         .as_ref()
         .file_name()
         .context("Error getting model filename")?
         .to_string_lossy()
         .into();
 
-    let output = PathBuf::from_iter([config.home(), model_name.into()]);
+    let output = PathBuf::from_iter([config.home(), model_file.into()]);
     let output = output.with_extension(ng::NG_EXTENSION);
 
     converts(Formats::Text, model_path.as_ref(), output.as_ref())
         .context("Error during import of the model")?;
 
-    config.add_model(name, &output.to_string_lossy(), default)
+    config.add_model(
+        &ModelConfig {
+            name: name.into(),
+            path: output,
+            threshold: threshold,
+        },
+        default,
+    )
 }
 
 pub fn handle_config(config: &NgrepConfig) -> Result<()> {
@@ -48,7 +56,7 @@ pub fn handle_config(config: &NgrepConfig) -> Result<()> {
     std::process::exit(1);
 }
 
-pub fn handle_match(config: &NgrepConfig, args: Args, reader: Box<dyn BufRead>) -> Result<()> {
+pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRead>) -> Result<()> {
     let mut cli = Args::command();
 
     if args.pattern.is_none() {
@@ -60,16 +68,8 @@ pub fn handle_match(config: &NgrepConfig, args: Args, reader: Box<dyn BufRead>) 
     }
 
     let pattern_str = args.pattern.as_ref().unwrap();
-
-    let model_path = config.resolve_model_path(
-        &args
-            .model
-            .unwrap_or_else(|| config.default_model().unwrap()),
-    )?;
-    let matcher_threshold = args
-        .threshold
-        .unwrap_or_else(|| config.default_threshold().unwrap());
-    let matcher_factory = EmbedNeuralMatcherFactory::new(model_path, matcher_threshold);
+    let model = config.model();
+    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold as f32);
 
     let pattern = RegexBuilder::new(pattern_str)
         .neural_matcher_factory(&(Arc::new(matcher_factory) as Arc<dyn NeuralMatcherFactory>))

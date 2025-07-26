@@ -19,7 +19,7 @@ pub struct EmbedNeuralMatcherFactory {
 }
 
 impl EmbedNeuralMatcherFactory {
-    pub fn new(model_path: PathBuf, threshold: f32) -> Self {
+    pub fn new(model_path: &PathBuf, threshold: f32) -> Self {
         EmbedNeuralMatcherFactory {
             model: EmbeddingLoader::load(model_path).unwrap(),
             threshold,

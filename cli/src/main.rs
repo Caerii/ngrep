@@ -15,7 +15,7 @@ use commands::{handle_config, handle_import, handle_match};
 use config::NgrepConfig;
 
 // --- Command Line Arguments
-#[derive(Parser, Debug)]
+#[derive(Parser, Clone, Debug)]
 #[command(name = "ngrep")]
 #[command(version = "0.1.0")]
 #[command(version, about, about = "A neural grep")]
@@ -29,7 +29,7 @@ pub struct Args {
 
     /// Similarity threshold
     #[arg(short, long)]
-    threshold: Option<f32>,
+    threshold: Option<f64>,
 
     /// The search pattern
     #[arg(name = "pattern")]
@@ -40,10 +40,9 @@ pub struct Args {
     file: String,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 enum Commands {
-    /// Import a supported model converting it to ng format
-    /// and making it the default one
+    /// Import a supported model
     Import {
         /// Path to a model
         #[arg(short, long)]
@@ -52,6 +51,10 @@ enum Commands {
         /// Name of the model
         #[arg(short, long)]
         name: String,
+
+        /// Default threshold for the model
+        #[arg(short, long, default_value = "0.5")]
+        threshold: f64,
 
         /// Set as default
         #[arg(short, long, default_value = "false")]
@@ -73,20 +76,21 @@ fn reader(path: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn main() -> Result<(), Error> {
-    let mut config = NgrepConfig::load_or_init()?;
     let args: Args = Args::parse();
+    let mut config = NgrepConfig::load_or_init(&args)?;
 
     if let Some(command) = args.command {
         return match command {
             Commands::Import {
                 path,
                 name,
+                threshold,
                 default,
-            } => handle_import(&mut config, path, &name, default),
+            } => handle_import(&mut config, path, &name, threshold, default),
             Commands::Config {} => handle_config(&config),
         };
     }
 
     let input = reader(&args.file.clone())?;
-    handle_match(&config, args, input)
+    handle_match(&mut config, args, input)
 }

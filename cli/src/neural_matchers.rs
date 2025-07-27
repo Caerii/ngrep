@@ -6,6 +6,7 @@ use embeddings::matchers::{CosineMatcher, Match};
 use embeddings::models::{Embed, EmbeddingLoader};
 use embeddings::Embedding;
 
+use anyhow::Result;
 use fancy_regex::{NeuralExpr, NeuralMatcher, NeuralMatcherFactory};
 
 /// A factory that creates an EmbedNeuralMatcher (impl NeuralMatcher) for a NeuralExpr.
@@ -19,11 +20,11 @@ pub struct EmbedNeuralMatcherFactory {
 }
 
 impl EmbedNeuralMatcherFactory {
-    pub fn new(model_path: &PathBuf, threshold: f32) -> Self {
-        EmbedNeuralMatcherFactory {
-            model: EmbeddingLoader::load(model_path).unwrap(),
+    pub fn new(model_path: &PathBuf, threshold: f32) -> Result<Self> {
+        Ok(EmbedNeuralMatcherFactory {
+            model: EmbeddingLoader::load(model_path)?,
             threshold,
-        }
+        })
     }
 }
 

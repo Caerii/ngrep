@@ -117,7 +117,7 @@ impl fmt::Display for ParseError {
                 write!(f, "Invalid group name in back reference: {}", s)
             }
             ParseError::TargetNotRepeatable => write!(f, "Target of repeat operator is invalid"),
-            ParseError::InvalidNeural => write!(f, "Could not parse neural"),
+            ParseError::InvalidNeural => write!(f, "Could not parse neural operator"),
         }
     }
 }

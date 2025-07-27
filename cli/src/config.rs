@@ -3,7 +3,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::{fs::File, io::Write};
 
-use anyhow::{Context, Ok, Result};
+use anyhow::{bail, Context, Ok, Result};
 use expanduser::expanduser;
 use toml_edit::{DocumentMut, Table, Value};
 
@@ -11,8 +11,7 @@ use crate::Args;
 
 const NGREP_HOME: &str = "~/.ngrep";
 const NGREP_TOML_CONFIG: &str = "config.toml";
-const NGREP_TOML_INIT: &str = r#"
-# ngrep configuration
+const NGREP_TOML_INIT: &str = r#"# ngrep configuration
 #
 # [ngrep]
 # model = <name>             # set a default model
@@ -64,8 +63,10 @@ impl TomlConfig {
     }
 
     fn load_toml<P: AsRef<Path>>(path: P) -> Result<DocumentMut> {
-        let mut file = File::open(&path)?;
+        let path_str = path.as_ref().to_string_lossy();
+        let mut file = File::open(&path).context(format!("Error opening '{}'", path_str))?;
         let mut toml: String = String::new();
+
         file.read_to_string(&mut toml)?;
 
         toml.parse::<DocumentMut>()
@@ -93,9 +94,9 @@ impl TomlConfig {
 
         self.get_table(keys.join(".").as_str())?
             .get(value)
-            .context(format!("Value '{}' not found", value))?
+            .context(format!("key '{}' not found in configuration", key))?
             .as_value()
-            .context(format!("Can't convert to a value '{}'", value))
+            .context(format!("Can't read '{}' value", key))
     }
 
     pub fn add_value<V: Into<toml_edit::Value>>(
@@ -133,6 +134,20 @@ pub struct ModelConfig {
     pub threshold: f64,
 }
 
+impl ModelConfig {
+    pub fn new(name: String, path: PathBuf, threshold: f64) -> Result<ModelConfig> {
+        if name.contains('.') {
+            bail!("Model name can't contains '.'")
+        }
+
+        Ok(ModelConfig {
+            name,
+            path,
+            threshold,
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct NgrepConfig {
     toml: TomlConfig,
@@ -166,21 +181,18 @@ impl NgrepConfig {
         self.toml.path()
     }
 
-    pub fn model(&mut self) -> &ModelConfig {
+    pub fn model(&mut self) -> Result<&ModelConfig> {
         match self.model {
-            Some(ref model) => model,
+            Some(ref model) => Ok(model),
             None => {
-                self.model = Some(self.resolve_model().expect("Failing getting default model"));
-                self.model.as_ref().unwrap()
+                self.model = Some(self.resolve_model()?);
+                Ok(self.model.as_ref().unwrap())
             }
         }
     }
 
     pub fn add_model(&mut self, model: &ModelConfig, default: bool) -> Result<()> {
-        let model_path = model
-            .path
-            .to_str()
-            .context("Error converting path to str")?;
+        let model_path = model.path.to_str().context("Invalid path provided")?;
 
         let table = format!("models.{}", model.name);
         self.toml.add_value(&table, "path", model_path)?;
@@ -199,7 +211,7 @@ impl NgrepConfig {
             None => self
                 .toml
                 .get_value("ngrep.model")
-                .and_then(|v| v.as_str().context("Model should be a string"))?
+                .and_then(|v| v.as_str().context("`model` expected to be a string"))?
                 .into(),
         };
 
@@ -208,23 +220,19 @@ impl NgrepConfig {
         let model_path = PathBuf::from(
             &model_toml
                 .get("path")
-                .context("No path found for specified model")?
+                .context(format!("`.path` not found for model '{}'", model_name))?
                 .as_str()
-                .context("Path should be a string")?,
+                .context("`path` expected to be a string")?,
         );
         let model_th: f64 = match self.args.threshold {
             Some(th) => th,
             None => model_toml
                 .get("threshold")
-                .context("No threshold for the specified model")?
+                .context(format!("`.threshold` not found for model '{}'", model_name))?
                 .as_float()
-                .context("Threshold should be float")?,
+                .context("`.threshold` expected to be a float")?,
         };
 
-        Ok(ModelConfig {
-            name: model_name,
-            path: model_path,
-            threshold: model_th,
-        })
+        ModelConfig::new(model_name, model_path, model_th)
     }
 }

@@ -19,36 +19,28 @@ use embeddings::ng;
 
 pub fn handle_import<P: AsRef<Path>>(
     config: &mut NgrepConfig,
-    model_path: P,
+    path: P,
     name: &str,
     threshold: f64,
     default: bool,
 ) -> Result<()> {
-    let model_file: String = model_path
+    let file_name = path
         .as_ref()
         .file_name()
-        .context("Error getting model filename")?
-        .to_string_lossy()
-        .into();
+        .context("Error getting model file name")?;
 
-    let output = PathBuf::from_iter([config.home(), model_file.into()]);
-    let output = output.with_extension(ng::NG_EXTENSION);
+    let model_path = PathBuf::from_iter([config.home(), file_name.into()]);
+    let model_path = model_path.with_extension(ng::NG_EXTENSION);
+    let model_conf = ModelConfig::new(name.into(), model_path, threshold)?;
 
-    converts(Formats::Text, model_path.as_ref(), output.as_ref())
+    converts(Formats::Text, path.as_ref(), model_conf.path.as_ref())
         .context("Error during import of the model")?;
 
-    config.add_model(
-        &ModelConfig {
-            name: name.into(),
-            path: output,
-            threshold: threshold,
-        },
-        default,
-    )
+    config.add_model(&model_conf, default)
 }
 
 pub fn handle_config(config: &NgrepConfig) -> Result<()> {
-    let editor = get_editor().context("No default editor found")?;
+    let editor = get_editor().context("No default $EDITOR found")?;
 
     let error = Command::new(editor).args([config.path()]).exec();
 
@@ -68,8 +60,11 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
     }
 
     let pattern_str = args.pattern.as_ref().unwrap();
-    let model = config.model();
-    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold as f32);
+    let model = config
+        .model()
+        .context("No default model found, run `ngrep import` first")?;
+    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold as f32)
+        .context("Error during model initialization")?;
 
     let pattern = RegexBuilder::new(pattern_str)
         .neural_matcher_factory(&(Arc::new(matcher_factory) as Arc<dyn NeuralMatcherFactory>))

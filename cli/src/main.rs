@@ -56,9 +56,9 @@ enum Commands {
         #[arg(short, long, default_value = "0.5")]
         threshold: f64,
 
-        /// Set as default
+        /// Do not set as default
         #[arg(short, long, default_value = "false")]
-        default: bool,
+        no_default: bool,
     },
     /// Edit ~/.ngrep/config.toml
     Config,
@@ -85,8 +85,8 @@ fn main() -> Result<(), Error> {
                 path,
                 name,
                 threshold,
-                default,
-            } => handle_import(&mut config, path, &name, threshold, default),
+                no_default,
+            } => handle_import(&mut config, path, &name, threshold, !no_default),
             Commands::Config {} => handle_config(&config),
         };
     }

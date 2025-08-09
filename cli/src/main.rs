@@ -38,6 +38,10 @@ pub struct Args {
     /// File to search in or '-' for stdin.
     #[arg(name = "file", default_value = "-")]
     file: String,
+
+    /// Prefix each line with its line number, starting at line 1.
+    #[arg(long, short = 'n', default_value = "false")]
+    line_number: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]

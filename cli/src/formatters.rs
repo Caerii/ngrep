@@ -12,22 +12,24 @@ macro_rules! try_write {
 /// Simple line-buffered colored match formatter.
 pub struct MatchFormatter {
     colors: Vec<Color>,
+    line_number: bool,
 }
 
 impl MatchFormatter {
-    pub fn default() -> Self {
-        Self::new(vec![Color::Red, Color::Blue, Color::Green, Color::Yellow])
-    }
-
-    pub fn new(colors: Vec<Color>) -> Self {
-        MatchFormatter { colors }
+    pub fn new(line_number: bool) -> Self {
+        MatchFormatter {
+            colors: vec![Color::Red, Color::Blue, Color::Green, Color::Yellow],
+            line_number: line_number,
+        }
     }
 
     pub fn display(&self, line_inx: usize, line: &str, matches: &Vec<Match>) {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
 
-        try_write!(handle, "{}:", line_inx);
+        if self.line_number {
+            try_write!(handle, "{}:", line_inx + 1);
+        }
 
         let mut cursor = 0;
         for (i, match_) in matches.iter().enumerate() {

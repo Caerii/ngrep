@@ -534,11 +534,21 @@ pub trait NeuralMatcher: Debug {
 }
 
 /// Result of parsing a Neural Expression of the form `~(value)`.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct NeuralExpr {
     /// The value of the Neural Expression.
     pub value: String,
+
+    /// The specified threhsold
+    pub threshold: Option<f64>,
 }
+
+impl PartialEq for NeuralExpr {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+impl Eq for NeuralExpr {}
 
 /// The factory for creating a Neural Matcher from a Neural Expression.
 pub trait NeuralMatcherFactory: Debug {

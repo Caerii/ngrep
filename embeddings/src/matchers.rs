@@ -1,30 +1,30 @@
 use std::fmt::Debug;
 
 use anyhow::{bail, Result};
-use candle_core::Tensor;
+use candle_core::{DType, Tensor};
 
 pub trait Match: Debug {
     fn is_match(&self, lhs: &Tensor, rhs: &Tensor) -> Result<bool>;
 }
 
 #[derive(Debug)]
-pub struct CosineMatcher(f32);
+pub struct CosineMatcher(f64);
 
 impl CosineMatcher {
-    pub fn new(threshold: f32) -> Self {
+    pub fn new(threshold: f64) -> Self {
         CosineMatcher(threshold)
     }
 
-    fn cosine_sim(&self, lhs: &Tensor, rhs: &Tensor) -> Result<f32> {
+    fn cosine_sim(&self, lhs: &Tensor, rhs: &Tensor) -> Result<f64> {
         let num = lhs.matmul(&rhs.t()?)?.flatten_all()?.squeeze(0)?;
         let den_tensor = (self.norm(lhs)? * self.norm(rhs)?)?;
-        let den = den_tensor.to_scalar::<f32>()?;
+        let den = den_tensor.to_dtype(DType::F64)?.to_scalar::<f64>()?;
 
         if den == 0.0 {
             bail!("Cannot compute cosine similarity on a zero-vector");
         }
 
-        let num = num.to_scalar::<f32>()?;
+        let num = num.to_dtype(DType::F64)?.to_scalar::<f64>()?;
         Ok(num / den)
     }
 

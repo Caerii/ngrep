@@ -63,7 +63,7 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
     let model = config
         .model()
         .context("No default model found, run `ngrep import` first")?;
-    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold as f32)
+    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold)
         .context("Error during model initialization")?;
 
     let pattern = RegexBuilder::new(pattern_str)

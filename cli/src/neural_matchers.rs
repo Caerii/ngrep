@@ -16,11 +16,11 @@ use fancy_regex::{NeuralExpr, NeuralMatcher, NeuralMatcherFactory};
 #[derive(Debug)]
 pub struct EmbedNeuralMatcherFactory {
     model: Arc<dyn Embed>,
-    threshold: f32,
+    threshold: f64,
 }
 
 impl EmbedNeuralMatcherFactory {
-    pub fn new(model_path: &PathBuf, threshold: f32) -> Result<Self> {
+    pub fn new(model_path: &PathBuf, threshold: f64) -> Result<Self> {
         Ok(EmbedNeuralMatcherFactory {
             model: EmbeddingLoader::load(model_path)?,
             threshold,
@@ -31,7 +31,9 @@ impl EmbedNeuralMatcherFactory {
 impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
     fn matcher_for(&self, expr: &NeuralExpr) -> Result<Arc<dyn NeuralMatcher>, io::Error> {
         let expr_value = expr.value.clone();
-        let matcher = EmbedNeuralMatcher::new(self.model.clone(), expr_value, self.threshold);
+        let expr_threshold = expr.threshold.or(Some(self.threshold)).unwrap();
+
+        let matcher = EmbedNeuralMatcher::new(self.model.clone(), expr_value, expr_threshold);
 
         Ok(Arc::new(matcher))
     }
@@ -49,7 +51,7 @@ struct EmbedNeuralMatcher {
 }
 
 impl EmbedNeuralMatcher {
-    fn new(model: Arc<dyn Embed>, value: String, threshold: f32) -> Self {
+    fn new(model: Arc<dyn Embed>, value: String, threshold: f64) -> Self {
         let value = model.embed(&value).unwrap();
 
         EmbedNeuralMatcher {

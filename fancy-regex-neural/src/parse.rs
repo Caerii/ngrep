@@ -30,7 +30,9 @@ use core::convert::TryInto;
 use core::usize;
 use regex_syntax::escape_into;
 
-use crate::{codepoint_len, CompileError, Error, Expr, NeuralExpr, ParseError, Result, MAX_RECURSION};
+use crate::{
+    codepoint_len, CompileError, Error, Expr, NeuralExpr, ParseError, Result, MAX_RECURSION,
+};
 use crate::{Assertion, LookAround::*};
 
 const FLAG_CASEI: u32 = 1;
@@ -520,16 +522,57 @@ impl<'a> Parser<'a> {
     fn parse_neural(&mut self, ix: usize) -> Result<(usize, Expr)> {
         let bytes = self.re.as_bytes();
         let mut ix = ix + 1;
-        let mut text = String::new();
 
         if bytes.get(ix) != Some(&b'(') {
             return Err(Error::ParseError(ix, ParseError::InvalidNeural));
         }
 
-        // XXX: handle ')' in text
+        let mut value = String::new();
+        let mut threshold: Option<f64> = None;
+
         ix = ix + 1;
-        while ix < bytes.len() && bytes.get(ix) != Some(&b')') {
-            text.push(bytes[ix] as char);
+        while ix < bytes.len() {
+            match bytes.get(ix) {
+                Some(b')') => {
+                    /* Finished */
+                    break;
+                }
+                Some(b';') => {
+                    /* Fields parsing */
+                    ix += 1;
+
+                    // --- threshold
+                    let ix_field = ix;
+                    ix += bytes[ix_field..]
+                        .iter()
+                        .take_while(|&&b| matches!(b, b'0'..=b'9' | b'.' | b'-' | b'+'))
+                        .count();
+
+                    threshold = Some(
+                        std::str::from_utf8(&bytes[ix_field..ix])
+                            .ok()
+                            .and_then(|s| s.parse::<f64>().ok())
+                            .ok_or(Error::ParseError(ix, ParseError::InvalidNeural))?,
+                    );
+
+                    break;
+                }
+                Some(b'\\') => {
+                    /* Handle escaped char */
+                    ix += 1;
+                    let error = ix > bytes.len();
+                    match (error, bytes.get(ix)) {
+                        (false, Some(b'(')) => value.push('('),
+                        (false, Some(b')')) => value.push(')'),
+                        (false, Some(b';')) => value.push(';'),
+                        _ => return Err(Error::ParseError(ix, ParseError::InvalidNeural)),
+                    }
+                }
+                _ => {
+                    /* Accumulate text */
+                    value.push(bytes[ix] as char)
+                }
+            }
             ix += 1;
         }
 
@@ -537,14 +580,7 @@ impl<'a> Parser<'a> {
             return Err(Error::ParseError(ix, ParseError::InvalidNeural));
         }
 
-        Ok((
-            ix + 1,
-            Expr::Neural (
-                NeuralExpr {
-                    value: text,
-                }
-            )
-        ))
+        Ok((ix + 1, Expr::Neural(NeuralExpr { value, threshold })))
     }
 
     fn parse_class(&mut self, ix: usize) -> Result<(usize, Expr)> {

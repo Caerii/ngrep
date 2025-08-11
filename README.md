@@ -1,5 +1,5 @@
 ### `ngrep`
-![ngrep](./assets/ngrep.png)
+![ngrep](./assets/ngrep.svg)
 <div align="center"> <sup>ngrep matching a paragraph of <em>Flatland: A Romance of Many Dimensions</em></sup></div>
 
 ---

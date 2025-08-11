@@ -1,3 +1,7 @@
+| ![ngrep](./assets/ngrep.png) |
+|:--:|
+| *ngrep matching a paragrpah of Flatland* |
+
 # ngrep
 `ngrep` extends regular expressions with word-embeddings, introducing the neural operator `~` to express semantic matches.
 

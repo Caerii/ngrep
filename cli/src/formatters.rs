@@ -18,7 +18,11 @@ pub struct MatchFormatter {
 impl MatchFormatter {
     pub fn new(line_number: bool) -> Self {
         MatchFormatter {
-            colors: vec![Color::Red, Color::Blue, Color::Green, Color::Yellow],
+            colors: vec![Color::TrueColor {
+                r: 255,
+                g: 123,
+                b: 123,
+            }],
             line_number: line_number,
         }
     }

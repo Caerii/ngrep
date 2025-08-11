@@ -1,9 +1,8 @@
-| ![ngrep](./assets/ngrep.png) |
-|:--:|
-| *ngrep matching a paragrpah of Flatland* |
+### `ngrep`
+![ngrep](./assets/ngrep.png)
+<div align="center"> <sup>ngrep matching a paragraph of <em>Flatland: A Romance of Many Dimensions</em></sup></div>
 
-# ngrep
-`ngrep` extends regular expressions with word-embeddings, introducing the neural operator `~` to express semantic matches.
+---
 
 ### Table of Contents
 

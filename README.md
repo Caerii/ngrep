@@ -16,4 +16,29 @@ For example, the expression `~(fruit)+` matches any sequence of characters whose
 
 ![fruits](./assets/fruits.svg)
 
+## Install
+
+`TODO`
+
+After `ngrep` is installed you have to import some Word Embeddings model to start matching.  
+Here are the steps to use the English FastText embeddings. First download the vectors:
+
+```bash
+> curl https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.vec.gz
+> gzip -d cc.en.300.vec.gz
+```
+
+Then import and use them:
+
+```bash
+> ngrep import --path cc.en.300.vec.gz --name ften
+> echo 'hello world' | ngrep '~(hey)+ ~(planet)+'
+```
+
+Alternatively you can import any embeddings in the `txt` format and configure the default model with `ngrep config`:
+
+ - [FastText Word vectors for 157 languages](https://fasttext.cc/docs/en/crawl-vectors.html#models)
+ - [Wikipedia2Vec with ENTITY vectors](https://wikipedia2vec.github.io/wikipedia2vec/pretrained/)
+ - [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/)
+
 _<tiny> built with ❤️ with zed, 🦀 and fancy-regex </tiny>_

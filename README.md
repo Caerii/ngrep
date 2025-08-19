@@ -43,7 +43,7 @@ Alternatively you can import any embeddings in the `txt` format and configure t
 
 ## A note on performance
 
-`ngrep`'s current focus is primarily on exploration, not performance (despite being built on the great [fancy-regex](https://github.com/fancy-regex/fancy-regex) library!). For instance, it doesn't preload or cache vectors and performs numerous disk accesses, and `~` matches are not compiled into standard regex when possibile. This is a deliberate choice to provide a simple way to explore and extend this concept (small LLMs models I'm looking to you!)
+`ngrep`'s current focus is primarily on exploration, not performance (despite being built on the great 🦀 [fancy-regex](https://github.com/fancy-regex/fancy-regex) library!). For instance, it doesn't preload or cache vectors and performs numerous disk accesses, and `~` matches are not compiled into standard regex when possibile. This is a deliberate choice to provide a simple way to explore and extend this concept (small LLMs models I'm looking to you!)
 
 To give you a glimpse of the current performance, it takes about 45 seconds to find the most common ways to refer to a big animal in the book _Moby-Dick_ on MacBook Pro M4 (1.2MB of text, 22K lines, English FastText 300d):
 ```

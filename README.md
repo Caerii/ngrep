@@ -47,19 +47,26 @@ Alternatively you can import any embeddings in the `txt` format and configure t
 
 To give you a glimpse of the current performance, it takes about 45 seconds to find the most common ways to refer to a big animal in the book _Moby-Dick_ on MacBook Pro M4 (1.2MB of text, 22K lines, English FastText 300d):
 ```
-> ngrep -o '~(big) ~(animal;0.4)' moby.txt | sort | uniq -c | sort -n
+> ngrep -o '~(big)+ \b~(animal;0.35)+\b' moby.txt | sort | uniq -c | sort -n
    1 big whale
+   1 enormous creature
+   1 enormous creatures
    1 gigantic creature
-   1 great rat
+   1 gigantic fish
+   1 great dromedary
+   1 great hunting
    1 huge elephant
    1 huge reptile
-   1 large creature
+   1 large creatures
    1 large herd
-   1 little fur
+   1 large whales
+   1 little cannibal
    1 small cub
-   1 small fowl
+   1 small fish
    1 tremendous whale
-   2 enormous creature
-   4 large whale
-  15 great whale
+   3 great fish
+   3 great monster
+   3 large whale
+   7 great whales
+   8 great whale
 ```

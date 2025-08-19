@@ -13,10 +13,11 @@ macro_rules! try_write {
 pub struct MatchFormatter {
     colors: Vec<Color>,
     line_number: bool,
+    only_matching: bool,
 }
 
 impl MatchFormatter {
-    pub fn new(line_number: bool) -> Self {
+    pub fn new(line_number: bool, only_matching: bool) -> Self {
         MatchFormatter {
             colors: vec![Color::TrueColor {
                 r: 255,
@@ -24,6 +25,7 @@ impl MatchFormatter {
                 b: 123,
             }],
             line_number: line_number,
+            only_matching: only_matching,
         }
     }
 
@@ -41,11 +43,17 @@ impl MatchFormatter {
             let mut match_colored = ColoredString::from(&line[start..end]);
             match_colored.fgcolor = Some(self.colors[i % self.colors.len()]);
 
-            try_write!(handle, "{}{}", &line[cursor..start], match_colored.bold());
+            if !self.only_matching {
+                try_write!(handle, "{}{}", &line[cursor..start], match_colored.bold());
+            } else {
+                try_write!(handle, "{}\n", match_colored.bold());
+            }
 
             cursor = end;
         }
-        try_write!(handle, "{}\n", &line[cursor..]);
+        if !self.only_matching {
+            try_write!(handle, "{}\n", &line[cursor..]);
+        }
 
         handle.flush().expect("Error flusing stdout");
     }

@@ -42,6 +42,10 @@ pub struct Args {
     /// Prefix each line with its line number, starting at line 1.
     #[arg(long, short = 'n', default_value = "false")]
     line_number: bool,
+
+    /// Prints only the matching part of the line
+    #[arg(long, short = 'o', default_value = "false")]
+    only_matching: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]

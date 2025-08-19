@@ -41,4 +41,25 @@ Alternatively you can import any embeddings in the `txt` format and configure t
  - [Wikipedia2Vec with ENTITY vectors](https://wikipedia2vec.github.io/wikipedia2vec/pretrained/)
  - [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/)
 
-_<tiny> built with ❤️ with zed, 🦀 and fancy-regex </tiny>_
+## A note on performance
+
+`ngrep`'s current focus is primarily on exploration, not performance (despite being built on the great [fancy-regex](https://github.com/fancy-regex/fancy-regex) library!). For instance, it doesn't preload or cache vectors and performs numerous disk accesses, and semantic matches are not compiled into standard regex. This is a deliberate choice to provide a simple way to explore and extend this concept (small LLMs models I'm looking to you!)
+
+To give you a glimpse of the current performance, it takes about 45 seconds to find the most common ways to refer to a big animal in the book _Moby-Dick_ on MacBook Pro M4 (approximately 1MB of text, 22K lines):
+```
+> ngrep -o '~(big) ~(animal;0.4)' moby.txt | sort | uniq -c | sort -n
+   1 big whale
+   1 gigantic creature
+   1 great rat
+   1 huge elephant
+   1 huge reptile
+   1 large creature
+   1 large herd
+   1 little fur
+   1 small cub
+   1 small fowl
+   1 tremendous whale
+   2 enormous creature
+   4 large whale
+  15 great whale
+```

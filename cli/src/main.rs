@@ -53,11 +53,11 @@ enum Commands {
     /// Import a supported model
     Import {
         /// Path to a model
-        #[arg(short, long)]
+        #[arg(name = "path")]
         path: PathBuf,
 
         /// Name of the model
-        #[arg(short, long)]
+        #[arg(name = "name")]
         name: String,
 
         /// Default threshold for the model

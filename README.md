@@ -31,7 +31,7 @@ Follow these steps to download the English FastText embeddings:
 Then import and use them:
 
 ```bash
-> ngrep import --path cc.en.300.vec.gz --name ften
+> ngrep import cc.en.300.vec.gz ften
 > echo 'hello world' | ngrep '~(hey)+ ~(planet)+'
 ```
 

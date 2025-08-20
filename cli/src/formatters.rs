@@ -29,7 +29,7 @@ impl MatchFormatter {
         }
     }
 
-    pub fn display(&self, line_inx: usize, line: &str, matches: &Vec<Match>) {
+    pub fn display_line(&self, line_inx: usize, line: &str, matches: &Vec<Match>) {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
 

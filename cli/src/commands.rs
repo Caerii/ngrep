@@ -80,7 +80,7 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
             .collect::<Vec<_>>();
 
         if !captures.is_empty() {
-            formatter.display(line_inx, &line, &captures);
+            formatter.display_line(line_inx, &line, &captures);
         }
     }
 

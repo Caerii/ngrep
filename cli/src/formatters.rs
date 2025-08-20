@@ -1,7 +1,6 @@
 use std::io::{self, Write};
 
 use colored::{Color, ColoredString, Colorize};
-use fancy_regex::Match;
 
 macro_rules! try_write {
     ($handle:expr, $($arg:tt)*) => {
@@ -29,7 +28,7 @@ impl MatchFormatter {
         }
     }
 
-    pub fn display_line(&self, line_inx: usize, line: &str, matches: &Vec<Match>) {
+    pub fn display_line(&self, line_inx: usize, line: &str, matches: &[(usize, usize)]) {
         let stdout = io::stdout();
         let mut handle = stdout.lock();
 
@@ -39,7 +38,7 @@ impl MatchFormatter {
 
         let mut cursor = 0;
         for (i, match_) in matches.iter().enumerate() {
-            let (start, end) = (match_.start(), match_.end());
+            let (start, end) = *match_;
             let mut match_colored = ColoredString::from(&line[start..end]);
             match_colored.fgcolor = Some(self.colors[i % self.colors.len()]);
 

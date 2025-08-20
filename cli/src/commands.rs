@@ -74,10 +74,11 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
     let formatter = MatchFormatter::new(args.line_number, args.only_matching);
     for (line_inx, line) in reader.lines().enumerate() {
         let line = line.unwrap();
-        let captures = pattern
+        let captures: Vec<(usize, usize)> = pattern
             .find_iter(line.as_str())
             .map(|cap| cap.unwrap())
-            .collect::<Vec<_>>();
+            .map(|cap| (cap.start(), cap.end()))
+            .collect();
 
         if !captures.is_empty() {
             formatter.display_line(line_inx, &line, &captures);

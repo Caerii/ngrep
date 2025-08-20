@@ -72,6 +72,7 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
         .context("Invalid regex pattern")?;
 
     let formatter = MatchFormatter::new(args.line_number, args.only_matching);
+    let mut stdout = std::io::stdout().lock();
     for (line_inx, line) in reader.lines().enumerate() {
         let line = line.unwrap();
         let captures: Vec<(usize, usize)> = pattern
@@ -81,7 +82,7 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
             .collect();
 
         if !captures.is_empty() {
-            formatter.display_line(line_inx, &line, &captures);
+            formatter.display_line(&mut stdout, line_inx, &line, &captures);
         }
     }
 

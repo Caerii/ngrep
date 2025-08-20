@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::Write;
 
 use colored::{Color, ColoredString, Colorize};
 
@@ -28,12 +28,15 @@ impl MatchFormatter {
         }
     }
 
-    pub fn display_line(&self, line_inx: usize, line: &str, matches: &[(usize, usize)]) {
-        let stdout = io::stdout();
-        let mut handle = stdout.lock();
-
+    pub fn display_line<W: Write>(
+        &self,
+        writer: &mut W,
+        line_inx: usize,
+        line: &str,
+        matches: &[(usize, usize)],
+    ) {
         if self.line_number {
-            try_write!(handle, "{}:", line_inx + 1);
+            try_write!(writer, "{}:", line_inx + 1);
         }
 
         let mut cursor = 0;
@@ -43,17 +46,17 @@ impl MatchFormatter {
             match_colored.fgcolor = Some(self.colors[i % self.colors.len()]);
 
             if !self.only_matching {
-                try_write!(handle, "{}{}", &line[cursor..start], match_colored.bold());
+                try_write!(writer, "{}{}", &line[cursor..start], match_colored.bold());
             } else {
-                try_write!(handle, "{}\n", match_colored.bold());
+                try_write!(writer, "{}\n", match_colored.bold());
             }
 
             cursor = end;
         }
         if !self.only_matching {
-            try_write!(handle, "{}\n", &line[cursor..]);
+            try_write!(writer, "{}\n", &line[cursor..]);
         }
 
-        handle.flush().expect("Error flusing stdout");
+        writer.flush().expect("Error flusing stdout");
     }
 }

@@ -15,15 +15,9 @@ pub struct MatchFormatterOptions {
 }
 
 impl MatchFormatterOptions {
-    const RED: Color = Color::TrueColor {
-        r: 255,
-        g: 123,
-        b: 123,
-    };
-
     pub fn default() -> Self {
         MatchFormatterOptions {
-            colors: Some(vec![Self::RED]),
+            colors: Some(vec![Color::Red]),
             line_number: false,
             only_matching: false,
         }
@@ -63,10 +57,10 @@ impl MatchFormatter {
         line: &str,
         matches: &[(usize, usize)],
     ) {
-        let mut cursor = 0;
+        let mut end = 0;
         for (i, match_span) in matches.iter().enumerate() {
-            let (start, end) = *match_span;
-            let mut match_ = ColoredString::from(&line[start..end]);
+            let (match_start, match_end) = *match_span;
+            let mut match_ = ColoredString::from(&line[match_start..match_end]);
 
             if let Some(colors) = &self.opts.colors {
                 match_.fgcolor = Some(colors[i % colors.len()]);
@@ -77,15 +71,15 @@ impl MatchFormatter {
                 try_write!(writer, "{}:", line_inx + 1);
             }
             if !self.opts.only_matching {
-                try_write!(writer, "{}{}", &line[cursor..start], match_);
+                try_write!(writer, "{}{}", &line[end..match_start], match_);
             } else {
                 try_write!(writer, "{}\n", match_);
             }
 
-            cursor = end;
+            end = match_end;
         }
         if !self.opts.only_matching {
-            try_write!(writer, "{}\n", &line[cursor..]);
+            try_write!(writer, "{}\n", &line[end..]);
         }
 
         writer.flush().expect("Error flushing output");
@@ -101,6 +95,21 @@ mod tests {
         let formatter = MatchFormatter::new(opts);
 
         (out, formatter)
+    }
+
+    #[test]
+    fn test_display_line_shows_colored_match() {
+        let (mut out, formatter) = setup_formatter(
+            MatchFormatterOptions::default()
+                .with_colors(Some(vec![Color::Red]))
+                .with_only_matching(false),
+        );
+
+        formatter.display_line(&mut out, 0, "hello world", &[(0, 5)]);
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "\x1b[1;31mhello\x1b[0m world\n"
+        );
     }
 
     #[test]

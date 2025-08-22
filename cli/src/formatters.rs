@@ -86,10 +86,10 @@ impl MatchFormatter {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
-    #[cfg(test)]
     fn setup_formatter(opts: MatchFormatterOptions) -> (Vec<u8>, MatchFormatter) {
         let out = Vec::new();
         let formatter = MatchFormatter::new(opts);

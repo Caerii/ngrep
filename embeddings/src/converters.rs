@@ -15,7 +15,7 @@ trait EmbedAdapter {
     fn embeddings(&self) -> Result<Box<dyn Iterator<Item = Result<WordEmbedding>> + '_>>;
 }
 
-pub fn converts<P: AsRef<Path>>(format: Formats, input: P, output: P) -> Result<()> {
+pub fn to_ng<P: AsRef<Path>>(format: Formats, input: P, output: P) -> Result<()> {
     let model = match format {
         Formats::Text => Box::new(TextEmbeddings::new(input.as_ref().into())),
     };

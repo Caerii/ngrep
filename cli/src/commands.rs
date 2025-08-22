@@ -4,7 +4,7 @@ use edit::get_editor;
 use fancy_regex::{NeuralMatcherFactory, RegexBuilder};
 use std::io::BufRead;
 use std::os::unix::process::CommandExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 
@@ -14,7 +14,7 @@ use crate::config::{ModelConfig, NgrepConfig};
 use crate::formatters::{MatchFormatter, MatchFormatterOptions};
 use crate::neural_matchers::EmbedNeuralMatcherFactory;
 use crate::Args;
-use embeddings::converters::{converts, Formats};
+use embeddings::converters::{self, Formats};
 use embeddings::ng;
 
 pub fn handle_import<P: AsRef<Path>>(
@@ -22,21 +22,22 @@ pub fn handle_import<P: AsRef<Path>>(
     path: P,
     name: &str,
     threshold: f64,
-    default: bool,
+    set_default: bool,
 ) -> Result<()> {
-    let file_name = path
+    let model_file_name = path
         .as_ref()
         .file_name()
         .context("Error getting model file name")?;
-
-    let model_path = PathBuf::from_iter([config.home(), file_name.into()]);
-    let model_path = model_path.with_extension(ng::NG_EXTENSION);
+    let model_path = config
+        .home()
+        .join(model_file_name)
+        .with_extension(ng::NG_EXTENSION);
     let model_conf = ModelConfig::new(name.into(), model_path, threshold)?;
 
-    converts(Formats::Text, path.as_ref(), model_conf.path.as_ref())
+    converters::to_ng(Formats::Text, path.as_ref(), &model_conf.path)
         .context("Error during import of the model")?;
 
-    config.add_model(&model_conf, default)
+    config.add_model(&model_conf, set_default)
 }
 
 pub fn handle_config(config: &NgrepConfig) -> Result<()> {

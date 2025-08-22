@@ -75,6 +75,8 @@ pub enum CompileError {
     InvalidBackref,
     /// Once named groups are used you cannot refer to groups by number
     NamedBackrefOnly,
+    /// Invalid neural
+    InvalidNeural(String),
 }
 
 /// An error as the result of executing a regex.
@@ -133,6 +135,8 @@ impl fmt::Display for CompileError {
             CompileError::InvalidGroupNameBackref(s) => write!(f, "Invalid group name in back reference: {}", s),
             CompileError::InvalidBackref => write!(f, "Invalid back reference"),
             CompileError::NamedBackrefOnly => write!(f, "Numbered backref/call not allowed because named group was used, use a named backref instead"),
+            CompileError::InvalidNeural(msg) => write!(f, "Could not compile neural operator: {}", msg),
+
         }
     }
 }

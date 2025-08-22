@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -23,13 +23,20 @@ impl EmbedNeuralMatcherFactory {
 }
 
 impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
-    fn matcher_for(&self, expr: &NeuralExpr) -> Result<Arc<dyn NeuralMatcher>, io::Error> {
-        let expr_value = &expr.value;
-        let expr_threshold = expr.threshold.unwrap_or(self.threshold);
+    fn matcher_for(&self, expr: &NeuralExpr) -> Result<Arc<dyn NeuralMatcher>, Error> {
+        let value = &expr.value;
+        let threshold = expr.threshold.unwrap_or(self.threshold);
 
-        let matcher = EmbedNeuralMatcher::new(self.model.clone(), expr_value, expr_threshold);
-
-        Ok(Arc::new(matcher))
+        match self.model.has_prefix(value) {
+            true => {
+                let matcher = EmbedNeuralMatcher::new(self.model.clone(), value, threshold);
+                Ok(Arc::new(matcher))
+            }
+            false => {
+                let error = format!("Embedding not found for '{}'", value);
+                Err(Error::new(ErrorKind::InvalidInput, error))
+            }
+        }
     }
 }
 
@@ -44,7 +51,7 @@ impl EmbedNeuralMatcher {
     fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Self {
         let embedding = model
             .embed(value)
-            .expect(&format!("Failed to embed value: {}", value));
+            .expect(&format!("Can't embed value: {}", value));
 
         let matcher = Box::new(CosineMatcher::new(threshold));
 

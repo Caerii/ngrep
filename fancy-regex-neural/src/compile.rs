@@ -116,15 +116,20 @@ impl Compiler {
         }
         match *info.expr {
             Expr::Empty => (),
-            Expr::Neural (ref neural) => {
+            Expr::Neural(ref neural) => {
                 let slot = self.b.newsave();
                 let neural_factory = self.neural_factory.as_ref().unwrap();
 
-                self.b.add(Insn::Neural{
-                    slot,
-                    matcher: neural_factory.matcher_for(neural).unwrap(),
-                });
-            },
+                let matcher = match neural_factory.matcher_for(neural) {
+                    Ok(matcher) => matcher,
+                    Err(err) => {
+                        let msg = err.to_string();
+                        return Err(Error::CompileError(CompileError::InvalidNeural(msg)));
+                    }
+                };
+
+                self.b.add(Insn::Neural { slot, matcher });
+            }
             Expr::Literal { ref val, casei } => {
                 if !casei {
                     self.b.add(Insn::Lit(val.clone()));

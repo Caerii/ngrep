@@ -23,16 +23,16 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::usize;
-use std::sync::Arc;
 use regex_automata::meta::Regex as RaRegex;
 use regex_automata::meta::{Builder as RaBuilder, Config as RaConfig};
 #[cfg(all(test, feature = "std"))]
-use std::{collections::BTreeMap, sync::RwLock};
+use std::collections::BTreeMap;
+use std::sync::{Arc, RwLock};
 
 use crate::analyze::Info;
 use crate::vm::{Insn, Prog};
-use crate::{LookAround::*, NeuralMatcherFactory};
 use crate::{CompileError, Error, Expr, LookAround, RegexOptions, Result};
+use crate::{LookAround::*, NeuralMatcherFactory};
 
 // I'm thinking it probably doesn't make a lot of sense having this split
 // out from Compiler.
@@ -97,11 +97,14 @@ impl VMBuilder {
 struct Compiler {
     b: VMBuilder,
     options: RegexOptions,
-    neural_factory: Option<Arc<dyn NeuralMatcherFactory>>,
+    neural_factory: Option<Arc<RwLock<dyn NeuralMatcherFactory>>>,
 }
 
 impl Compiler {
-    fn new(max_group: usize, neural_factory: Option<&Arc<dyn NeuralMatcherFactory>>) -> Compiler {
+    fn new(
+        max_group: usize,
+        neural_factory: Option<&Arc<RwLock<dyn NeuralMatcherFactory>>>,
+    ) -> Compiler {
         Compiler {
             b: VMBuilder::new(max_group),
             options: Default::default(),
@@ -114,18 +117,36 @@ impl Compiler {
             // easy case, delegate entire subexpr
             return self.compile_delegate(info);
         }
+
+        let n_err = |msg| Error::CompileError(CompileError::InvalidNeural(msg));
+
+        if info.neural {
+            let Some(neural_factory) = self.neural_factory.as_ref() else {
+                return Err(n_err("Neural requires a factory".to_string()));
+            };
+            let mut factory = match neural_factory.write() {
+                Ok(guard) => guard,
+                Err(_) => {
+                    return Err(n_err("Neural factory write lock error".to_string()));
+                }
+            };
+            if let Err(err) = factory.initialize() {
+                return Err(n_err(err.to_string()));
+            }
+        }
+
         match *info.expr {
             Expr::Empty => (),
             Expr::Neural(ref neural) => {
                 let slot = self.b.newsave();
-                let neural_factory = self.neural_factory.as_ref().unwrap();
+                let neural_factory = match self.neural_factory.as_ref().unwrap().read() {
+                    Ok(factory) => factory,
+                    Err(err) => return Err(n_err(err.to_string())),
+                };
 
                 let matcher = match neural_factory.matcher_for(neural) {
                     Ok(matcher) => matcher,
-                    Err(err) => {
-                        let msg = err.to_string();
-                        return Err(Error::CompileError(CompileError::InvalidNeural(msg)));
-                    }
+                    Err(err) => return Err(n_err(err.to_string())),
                 };
 
                 self.b.add(Insn::Neural { slot, matcher });
@@ -307,7 +328,7 @@ impl Compiler {
         lo: usize,
         hi: usize,
         greedy: bool,
-        hard: bool
+        hard: bool,
     ) -> Result<()> {
         let child = &info.children[0];
         if lo == 0 && hi == 1 {
@@ -531,7 +552,10 @@ pub(crate) fn compile_inner(inner_re: &str, options: &RegexOptions) -> Result<Ra
 }
 
 /// Compile the analyzed expressions into a program.
-pub fn compile(info: &Info<'_>, neural_factory: Option<&Arc<dyn NeuralMatcherFactory>>) -> Result<Prog> {
+pub fn compile(
+    info: &Info<'_>,
+    neural_factory: Option<&Arc<RwLock<dyn NeuralMatcherFactory>>>,
+) -> Result<Prog> {
     let mut c = Compiler::new(info.end_group, neural_factory);
     c.visit(info, false)?;
     c.b.add(Insn::End);

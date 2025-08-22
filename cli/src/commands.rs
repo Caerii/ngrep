@@ -6,7 +6,7 @@ use std::io::BufRead;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use anyhow::{Context, Result};
 
@@ -64,10 +64,11 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
     let model_config = config
         .model()
         .context("No default model found, run `ngrep import` first")?;
-    let neural_matcher = EmbedNeuralMatcherFactory::new(&model_config.path, model_config.threshold)
-        .context("Error during model initialization")?;
+    let neural_matcher = EmbedNeuralMatcherFactory::new(&model_config.path, model_config.threshold);
     let neural_regex = RegexBuilder::new(&args.pattern.unwrap())
-        .neural_matcher_factory(&(Arc::new(neural_matcher) as Arc<dyn NeuralMatcherFactory>))
+        .neural_matcher_factory(
+            Arc::new(RwLock::new(neural_matcher)) as Arc<RwLock<dyn NeuralMatcherFactory>>
+        )
         .build()
         .context("Invalid regex pattern")?;
 

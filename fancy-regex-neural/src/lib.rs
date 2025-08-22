@@ -193,6 +193,7 @@ use regex_automata::meta::Regex as RaRegex;
 use regex_automata::util::captures::Captures as RaCaptures;
 use regex_automata::util::syntax::Config as SyntaxConfig;
 use regex_automata::Input as RaInput;
+use std::sync::RwLock;
 
 mod analyze;
 mod compile;
@@ -557,6 +558,9 @@ pub trait NeuralMatcherFactory: Debug {
         &self,
         expr: &NeuralExpr,
     ) -> std::result::Result<Arc<dyn NeuralMatcher>, std::io::Error>;
+
+    /// Initialize the factory.
+    fn initialize(&mut self) -> std::result::Result<(), std::io::Error>;
 }
 
 impl<'r, 'h> core::iter::FusedIterator for SplitN<'r, 'h> {}
@@ -568,7 +572,7 @@ struct RegexOptions {
     backtrack_limit: usize,
     delegate_size_limit: Option<usize>,
     delegate_dfa_size_limit: Option<usize>,
-    neural_matcher: Option<Arc<dyn NeuralMatcherFactory>>,
+    neural_matcher: Option<Arc<RwLock<dyn NeuralMatcherFactory>>>,
 }
 
 impl Default for RegexOptions {
@@ -647,9 +651,9 @@ impl RegexBuilder {
     /// Set the neural matcher factory
     pub fn neural_matcher_factory(
         &mut self,
-        neural_matcher_factory: &Arc<dyn NeuralMatcherFactory>,
+        neural_matcher_factory: Arc<RwLock<dyn NeuralMatcherFactory>>,
     ) -> &mut Self {
-        self.0.neural_matcher = Some(neural_matcher_factory.clone());
+        self.0.neural_matcher = Some(neural_matcher_factory);
         self
     }
 }

@@ -1,5 +1,5 @@
 use std::io::{Error, ErrorKind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use embeddings::matchers::{CosineMatcher, Match};
@@ -11,32 +11,56 @@ use fancy_regex::{NeuralExpr, NeuralMatcher, NeuralMatcherFactory};
 
 #[derive(Debug)]
 pub struct EmbedNeuralMatcherFactory {
-    model: Arc<dyn Embed>,
+    model_path: PathBuf,
     threshold: f64,
+    model: Option<Arc<dyn Embed>>,
 }
 
 impl EmbedNeuralMatcherFactory {
-    pub fn new(model_path: &PathBuf, threshold: f64) -> Result<Self> {
-        let model = EmbeddingLoader::load(model_path)?;
-        Ok(Self { model, threshold })
+    pub fn new<P: AsRef<Path>>(model_path: P, threshold: f64) -> Self {
+        let model_path = model_path.as_ref().to_path_buf();
+
+        Self {
+            model_path,
+            threshold,
+            model: None,
+        }
     }
 }
 
 impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
+    fn initialize(&mut self) -> Result<(), Error> {
+        match EmbeddingLoader::load(&self.model_path) {
+            Ok(model) => {
+                self.model = Some(model);
+                Ok(())
+            }
+            Err(e) => Err(Error::new(
+                ErrorKind::Other,
+                format!("Error loading model: {}", e),
+            )),
+        }
+    }
+
     fn matcher_for(&self, expr: &NeuralExpr) -> Result<Arc<dyn NeuralMatcher>, Error> {
         let value = &expr.value;
         let threshold = expr.threshold.unwrap_or(self.threshold);
+        let model = self.model.as_ref().ok_or_else(|| {
+            Error::new(
+                ErrorKind::Other,
+                "Model not initialized. Call initialize() first.",
+            )
+        })?;
 
-        match self.model.has_prefix(value) {
-            true => {
-                let matcher = EmbedNeuralMatcher::new(self.model.clone(), value, threshold);
-                Ok(Arc::new(matcher))
-            }
-            false => {
-                let error = format!("Embedding not found for '{}'", value);
-                Err(Error::new(ErrorKind::InvalidInput, error))
-            }
+        if !model.has_prefix(value) {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                format!("Embedding not found for '{}'", value),
+            ));
         }
+
+        let matcher = EmbedNeuralMatcher::new(model.clone(), value, threshold);
+        Ok(Arc::new(matcher))
     }
 }
 

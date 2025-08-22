@@ -1,6 +1,6 @@
 mod commands;
 mod config;
-mod formatters;
+mod displayers;
 mod neural_matchers;
 
 use std::{

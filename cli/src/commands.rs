@@ -80,7 +80,7 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
 
     let mut stdout = std::io::stdout().lock();
     for (inx, line) in reader.lines().enumerate() {
-        let line = line.unwrap();
+        let line = line?;
         let captures: Vec<(usize, usize)> = neural_regex
             .find_iter(line.as_str())
             .map(|cap| cap.unwrap())

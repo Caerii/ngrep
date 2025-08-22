@@ -9,10 +9,6 @@ use embeddings::Embedding;
 use anyhow::Result;
 use fancy_regex::{NeuralExpr, NeuralMatcher, NeuralMatcherFactory};
 
-/// A factory that creates an EmbedNeuralMatcher (impl NeuralMatcher) for a NeuralExpr.
-///
-/// Instantiates a NeuralMatcher able to match a given string (i.e value of NeuralExpr)
-/// using an Embed model and a matcher strategy (e.g: cosine distance)
 #[derive(Debug)]
 pub struct EmbedNeuralMatcherFactory {
     model: Arc<dyn Embed>,
@@ -21,17 +17,15 @@ pub struct EmbedNeuralMatcherFactory {
 
 impl EmbedNeuralMatcherFactory {
     pub fn new(model_path: &PathBuf, threshold: f64) -> Result<Self> {
-        Ok(EmbedNeuralMatcherFactory {
-            model: EmbeddingLoader::load(model_path)?,
-            threshold,
-        })
+        let model = EmbeddingLoader::load(model_path)?;
+        Ok(Self { model, threshold })
     }
 }
 
 impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
     fn matcher_for(&self, expr: &NeuralExpr) -> Result<Arc<dyn NeuralMatcher>, io::Error> {
-        let expr_value = expr.value.clone();
-        let expr_threshold = expr.threshold.or(Some(self.threshold)).unwrap();
+        let expr_value = &expr.value;
+        let expr_threshold = expr.threshold.unwrap_or(self.threshold);
 
         let matcher = EmbedNeuralMatcher::new(self.model.clone(), expr_value, expr_threshold);
 
@@ -39,33 +33,33 @@ impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
     }
 }
 
-/// A NeuralMatcher based on a Word Embedding model and a vector-based distance metric
-///
-/// Combines an Embed model, a Match strategy (e.g: cosine distance),
-/// to creates a matcher linked to a specific value String.
 #[derive(Debug)]
 struct EmbedNeuralMatcher {
     model: Arc<dyn Embed>,
     matcher: Box<dyn Match>,
-    value: Embedding,
+    embedding: Embedding,
 }
 
 impl EmbedNeuralMatcher {
-    fn new(model: Arc<dyn Embed>, value: String, threshold: f64) -> Self {
-        let value = model.embed(&value).unwrap();
+    fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Self {
+        let embedding = model
+            .embed(value)
+            .expect(&format!("Failed to embed value: {}", value));
 
-        EmbedNeuralMatcher {
+        let matcher = Box::new(CosineMatcher::new(threshold));
+
+        Self {
             model,
-            value,
-            matcher: Box::new(CosineMatcher::new(threshold)),
+            embedding,
+            matcher,
         }
     }
 }
 
 impl NeuralMatcher for EmbedNeuralMatcher {
-    fn matches(&self, text: &str) -> bool {
+    fn is_match(&self, text: &str) -> bool {
         match self.model.embed(text) {
-            Ok(text_embed) => self.matcher.is_match(&self.value, &text_embed).unwrap(),
+            Ok(text_embed) => self.matcher.is_match(&self.embedding, &text_embed).unwrap(),
             Err(_) => return false,
         }
     }

@@ -525,7 +525,7 @@ impl<'r, 'h> Iterator for SplitN<'r, 'h> {
 /// `NeuralMatcherFactory` trait.
 pub trait NeuralMatcher: Debug {
     /// Whether the text matches the value of this Neural Matcher.
-    fn matches(&self, text: &str) -> bool;
+    fn is_match(&self, text: &str) -> bool;
 
     /// Whether the current text or future extensions could match the pattern
     /// of this Neural Matcher. As soon as this check fails, the search with

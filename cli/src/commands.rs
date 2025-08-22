@@ -11,7 +11,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 
 use crate::config::{ModelConfig, NgrepConfig};
-use crate::formatters::MatchFormatter;
+use crate::formatters::{MatchFormatter, MatchFormatterOptions};
 use crate::neural_matchers::EmbedNeuralMatcherFactory;
 use crate::Args;
 use embeddings::converters::{converts, Formats};
@@ -71,7 +71,11 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
         .build()
         .context("Invalid regex pattern")?;
 
-    let formatter = MatchFormatter::new(args.line_number, args.only_matching);
+    let formatter_options = MatchFormatterOptions::default()
+        .with_line_number(args.line_number)
+        .with_only_matching(args.only_matching);
+    let formatter = MatchFormatter::new(formatter_options);
+
     let mut stdout = std::io::stdout().lock();
     for (line_inx, line) in reader.lines().enumerate() {
         let line = line.unwrap();

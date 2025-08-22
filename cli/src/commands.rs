@@ -60,34 +60,35 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
         .exit();
     }
 
-    let pattern_str = args.pattern.as_ref().unwrap();
-    let model = config
+    // --- model initialization
+    let model_config = config
         .model()
         .context("No default model found, run `ngrep import` first")?;
-    let matcher_factory = EmbedNeuralMatcherFactory::new(&model.path, model.threshold)
+    let neural_matcher = EmbedNeuralMatcherFactory::new(&model_config.path, model_config.threshold)
         .context("Error during model initialization")?;
-
-    let pattern = RegexBuilder::new(pattern_str)
-        .neural_matcher_factory(&(Arc::new(matcher_factory) as Arc<dyn NeuralMatcherFactory>))
+    let neural_regex = RegexBuilder::new(&args.pattern.unwrap())
+        .neural_matcher_factory(&(Arc::new(neural_matcher) as Arc<dyn NeuralMatcherFactory>))
         .build()
         .context("Invalid regex pattern")?;
 
-    let formatter_options = MatchFormatterOptions::default()
-        .with_line_number(args.line_number)
-        .with_only_matching(args.only_matching);
-    let formatter = MatchFormatter::new(formatter_options);
+    // --- matching loop
+    let formatter = MatchFormatter::new(
+        MatchFormatterOptions::default()
+            .with_line_number(args.line_number)
+            .with_only_matching(args.only_matching),
+    );
 
     let mut stdout = std::io::stdout().lock();
-    for (line_inx, line) in reader.lines().enumerate() {
+    for (inx, line) in reader.lines().enumerate() {
         let line = line.unwrap();
-        let captures: Vec<(usize, usize)> = pattern
+        let captures: Vec<(usize, usize)> = neural_regex
             .find_iter(line.as_str())
             .map(|cap| cap.unwrap())
             .map(|cap| (cap.start(), cap.end()))
             .collect();
 
         if !captures.is_empty() {
-            formatter.display_line(&mut stdout, line_inx, &line, &captures);
+            formatter.display_line(&mut stdout, inx, &line, &captures);
         }
     }
 

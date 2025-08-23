@@ -158,7 +158,7 @@ impl Vocab {
     }
 
     pub fn has_prefixes(&self, prefix: &str) -> bool {
-        if self.trie.exact_match(prefix) {
+        if self.vocab.contains_key(prefix) {
             return true;
         }
         let next: Option<String> = self.trie.postfix_search(prefix).next();

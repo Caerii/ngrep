@@ -157,7 +157,7 @@ impl Vocab {
         self.vocab.get(token).map(|&i| i)
     }
 
-    pub fn has_prefixes(&self, prefix: &str) -> bool {
+    pub fn has_prefix(&self, prefix: &str) -> bool {
         if self.vocab.contains_key(prefix) {
             return true;
         }

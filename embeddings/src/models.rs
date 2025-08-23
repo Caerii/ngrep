@@ -48,6 +48,6 @@ impl Embed for LookupEmbeddingModel {
     }
 
     fn has_prefix(&self, prefix: &str) -> bool {
-        self.storage.header.keys.has_prefixes(prefix)
+        self.storage.header.keys.has_prefix(prefix)
     }
 }

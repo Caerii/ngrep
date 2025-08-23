@@ -161,8 +161,7 @@ impl Vocab {
         if self.vocab.contains_key(prefix) {
             return true;
         }
-        let next: Option<String> = self.trie.postfix_search(prefix).next();
-        next.is_some()
+        self.trie.is_prefix(prefix)
     }
 }
 

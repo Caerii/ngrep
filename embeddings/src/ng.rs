@@ -165,8 +165,6 @@ impl Vocab {
     }
 }
 
-// Parsing Utils -----------------------------------------------------------------------------------
-
 trait FromLeBytes: Sized {
     const BYTES: usize;
 
@@ -185,11 +183,25 @@ impl FromLeBytes for f32 {
 
 fn decode_le_bytes_to_vec<T: FromLeBytes>(bytes: &[u8]) -> Result<Vec<T>> {
     if bytes.len() % T::BYTES != 0 {
-        bail!("Can't decode bytes")
+        bail!("Can't decode bytes, wrong length");
     }
 
     bytes
         .chunks_exact(T::BYTES)
         .map(|chunk| T::from_le_bytes(chunk))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_le_bytes_to_f32_vec() {
+        let expected: Vec<f32> = vec![1.0, 2.0, -3.14];
+        let bytes: Vec<u8> = expected.iter().flat_map(|f| f.to_le_bytes()).collect();
+
+        let actual = decode_le_bytes_to_vec::<f32>(&bytes).unwrap();
+        assert_eq!(actual, expected);
+    }
 }

@@ -1,4 +1,3 @@
-### `ngrep`
 ![ngrep](./assets/ngrep.svg)
 <div align="center"> <sup><code>ngrep</code> matching a paragraph from the book <em>Flatland: A Romance of Many Dimensions</em></sup></div>
 

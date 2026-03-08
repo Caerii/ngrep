@@ -20,7 +20,7 @@ For example, the expression `~(fruit)+` matches any sequence of characters whose
 From the repository root:
 
 ```bash
-cargo install --path cli
+cargo install --path .
 ngrep --help
 ```
 

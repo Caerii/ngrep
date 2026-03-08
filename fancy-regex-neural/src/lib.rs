@@ -532,6 +532,11 @@ pub trait NeuralMatcher: Debug {
     /// of this Neural Matcher. As soon as this check fails, the search with
     /// the current text is aborted, and the Regex Engine will continue.
     fn might_match(&self, text: &str) -> bool;
+
+    /// Maximum number of codepoints to scan while growing a single neural atom.
+    fn max_codepoints(&self) -> usize {
+        32
+    }
 }
 
 /// Result of parsing a Neural Expression of the form `~(value)`.

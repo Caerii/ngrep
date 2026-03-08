@@ -104,4 +104,8 @@ impl NeuralMatcher for EmbedNeuralMatcher {
     fn might_match(&self, text: &str) -> bool {
         self.model.has_prefix(text)
     }
+
+    fn max_codepoints(&self) -> usize {
+        32
+    }
 }

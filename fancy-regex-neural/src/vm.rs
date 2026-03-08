@@ -467,12 +467,18 @@ pub(crate) fn run(
 
                     let matched = state.get(slot);
                     let mut m = 1;
+                    let mut codepoints = 0;
                     loop {
                         if ix + m > s.len() {
                             break 'fail;
                         }
 
                         if s.is_char_boundary(ix + m) {
+                            codepoints += 1;
+                            if codepoints > matcher.max_codepoints() {
+                                break 'fail;
+                            }
+
                             let text = str::from_utf8(&s.as_bytes()[ix - matched..ix + m]).unwrap();
 
                             if !matcher.might_match(text) {

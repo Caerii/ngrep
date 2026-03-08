@@ -17,7 +17,12 @@ For example, the expression `~(fruit)+` matches any sequence of characters whose
 
 ## Install
 
-`TODO`
+From the repository root:
+
+```bash
+cargo install --path cli
+ngrep --help
+```
 
 After `ngrep` is installed you have to import some Word Embeddings model to start matching.  
 Follow these steps to download the English FastText embeddings:
@@ -30,8 +35,8 @@ Follow these steps to download the English FastText embeddings:
 Then import and use them:
 
 ```bash
-> ngrep import cc.en.300.vec.gz ften
-> echo 'hello world' | ngrep '~(hey)+ ~(planet)+'
+ngrep import cc.en.300.vec ften
+echo 'hello world' | ngrep '~(hey)+ ~(planet)+'
 ```
 
 Alternatively you can import any embeddings in the `txt` format and configure the default model with `ngrep config`:

@@ -9,4 +9,5 @@ bincode = { version = "2.0.1", features = ["serde"] }
 candle-core = "0.9.0"
 memmap2 = "0.9.5"
 serde = "1.0.219"
+tqdm = "0.8.0"
 trie-rs = { version="0.4.2", features = ["rayon", "serde"] }

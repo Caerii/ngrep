@@ -6,21 +6,23 @@ use std::result;
 
 use crate::ng::{self, WordEmbedding};
 use anyhow::{bail, Context, Result};
+use tqdm::tqdm;
 
 pub enum Formats {
     Text,
 }
 
 trait EmbedAdapter {
-    fn embeddings(&self) -> Result<Box<dyn Iterator<Item = Result<WordEmbedding>> + '_>>;
+    fn embeddings(&self) -> Result<(usize, Box<dyn Iterator<Item = Result<WordEmbedding>> + '_>)>;
 }
 
 pub fn to_ng<P: AsRef<Path>>(format: Formats, input: P, output: P) -> Result<()> {
     let model = match format {
         Formats::Text => Box::new(TextEmbeddings::new(input.as_ref().into())),
     };
-    let embeddings = model.embeddings()?;
+    let (count, embeddings) = model.embeddings()?;
 
+    let embeddings = tqdm(embeddings).desc(Some("import")).total(Some(count));
     ng::to_file(output, embeddings)
 }
 
@@ -67,19 +69,19 @@ impl TextEmbeddings {
 }
 
 impl EmbedAdapter for TextEmbeddings {
-    fn embeddings(&self) -> Result<Box<dyn Iterator<Item = Result<WordEmbedding>> + '_>> {
+    fn embeddings(&self) -> Result<(usize, Box<dyn Iterator<Item = Result<WordEmbedding>> + '_>)> {
         let model = BufReader::new(File::open(&self.input)?);
         let mut lines = model.lines();
 
         let header = lines.next().context("Missing header")??;
 
-        let (_, dim) = self.parse_header(&header)?;
+        let (count, dim) = self.parse_header(&header)?;
 
         let iter = lines.map(move |line| {
             let line = line?;
             self.parse_line(&line, dim)
         });
 
-        Ok(Box::new(iter))
+        Ok((count, Box::new(iter)))
     }
 }

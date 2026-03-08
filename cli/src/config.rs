@@ -17,7 +17,7 @@ const NGREP_TOML_INIT: &str = r#"# ngrep configuration
 # model = <name>             # set a default model
 #
 # [models.<name>]
-# path = <ng-path>           # path to .ng model relative to ~/.ngrep
+# path = <ng-path>           # path to the .ng model
 # threshold = <number>       # default threshold for this model
 
 [ngrep]
@@ -105,15 +105,20 @@ impl TomlConfig {
         key: &str,
         value: V,
     ) -> Result<()> {
-        let keys: Vec<&str> = table_key.split(".").collect();
+        let keys: Vec<&str> = table_key.split('.').collect();
+        let last = keys.len().saturating_sub(1);
 
         let mut table: &mut toml_edit::Table = self.doc.as_table_mut();
-        for key in keys {
+        for (idx, key) in keys.iter().enumerate() {
             if table.contains_key(key) {
-                table = table[key].as_table_mut().unwrap();
+                table = table[*key].as_table_mut().unwrap();
             } else {
-                table[key] = toml_edit::table();
-                table = table[key].as_table_mut().unwrap();
+                table[*key] = toml_edit::table();
+                let next = table[*key].as_table_mut().unwrap();
+                if idx != last {
+                    next.set_implicit(true);
+                }
+                table = next;
             }
         }
 

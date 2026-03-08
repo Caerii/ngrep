@@ -49,7 +49,7 @@ impl TextEmbeddings {
     }
 
     fn parse_line(&self, line: &str, dim: usize) -> Result<WordEmbedding> {
-        let parts: Vec<&str> = line.split(" ").collect();
+        let parts: Vec<&str> = line.trim_end().split(" ").collect();
 
         let token = parts[0].to_string();
         let embed = parts[1..]

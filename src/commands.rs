@@ -24,19 +24,19 @@ pub fn handle_import<P: AsRef<Path>>(
     threshold: f64,
     set_default: bool,
 ) -> Result<()> {
-    let model_file_name = path
-        .as_ref()
-        .file_name()
-        .context("Error getting model file name")?;
-    let model_path = config
-        .home()
-        .join(model_file_name)
-        .with_extension(ng::NG_EXTENSION);
+    let model_path = config.home().join(name).with_extension(ng::NG_EXTENSION);
+    let model_path_temp = model_path.with_extension(format!("{}~", ng::NG_EXTENSION));
+
+    converters::to_ng(Formats::Text, path.as_ref(), &model_path_temp)
+        .context("Error during import of the model")
+        .map_err(|e| {
+            let _ = std::fs::remove_file(&model_path_temp);
+            e
+        })?;
+
+    std::fs::rename(&model_path_temp, &model_path)?;
+
     let model_conf = ModelConfig::new(name.into(), model_path, threshold)?;
-
-    converters::to_ng(Formats::Text, path.as_ref(), &model_conf.path)
-        .context("Error during import of the model")?;
-
     config.add_model(&model_conf, set_default)
 }
 

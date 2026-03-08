@@ -1648,6 +1648,30 @@ impl Expr {
         Parser::parse(re)
     }
 
+    /// Whether this expression tree contains a neural expression.
+    pub fn contains_neural(&self) -> bool {
+        match self {
+            Expr::Neural(_) => true,
+            Expr::Concat(children) | Expr::Alt(children) => {
+                children.iter().any(Self::contains_neural)
+            }
+            Expr::Group(child) | Expr::AtomicGroup(child) | Expr::LookAround(child, _) => {
+                child.contains_neural()
+            }
+            Expr::Repeat { child, .. } => child.contains_neural(),
+            Expr::Conditional {
+                condition,
+                true_branch,
+                false_branch,
+            } => {
+                condition.contains_neural()
+                    || true_branch.contains_neural()
+                    || false_branch.contains_neural()
+            }
+            _ => false,
+        }
+    }
+
     /// Convert expression to a regex string in the regex crate's syntax.
     ///
     /// # Panics

@@ -1,7 +1,7 @@
 use clap::error::ErrorKind;
 use clap::CommandFactory;
 use edit::get_editor;
-use fancy_regex::{NeuralMatcherFactory, RegexBuilder};
+use fancy_regex::{Expr, NeuralMatcherFactory, RegexBuilder};
 use std::io::BufRead;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
@@ -16,6 +16,10 @@ use crate::neural_matchers::EmbedNeuralMatcherFactory;
 use crate::Args;
 use embeddings::converters::{self, Formats};
 use embeddings::ng;
+
+fn pattern_uses_neural(pattern: &str) -> Result<bool> {
+    Ok(Expr::parse_tree(pattern)?.expr.contains_neural())
+}
 
 pub fn handle_import<P: AsRef<Path>>(
     config: &mut NgrepConfig,
@@ -60,17 +64,22 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
         .exit();
     }
 
+    let pattern = args.pattern.as_ref().unwrap();
+
     // --- model initialization
-    let model_config = config
-        .model()
-        .context("No default model found, run `ngrep import` first")?;
-    let neural_matcher = EmbedNeuralMatcherFactory::new(&model_config.path, model_config.threshold);
-    let neural_regex = RegexBuilder::new(&args.pattern.unwrap())
-        .neural_matcher_factory(
+    let mut neural_regex = RegexBuilder::new(pattern);
+    if pattern_uses_neural(pattern).context("Invalid regex pattern")? {
+        let model_config = config
+            .model()
+            .context("No default model found, run `ngrep import` first")?;
+        let neural_matcher =
+            EmbedNeuralMatcherFactory::new(&model_config.path, model_config.threshold);
+        neural_regex.neural_matcher_factory(
             Arc::new(RwLock::new(neural_matcher)) as Arc<RwLock<dyn NeuralMatcherFactory>>
-        )
-        .build()
-        .context("Invalid regex pattern")?;
+        );
+    }
+
+    let neural_regex = neural_regex.build().context("Invalid regex pattern")?;
 
     // --- matching loop
     let displayer = MatchDisplayer::new(

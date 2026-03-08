@@ -84,7 +84,9 @@ pub fn handle_match(config: &mut NgrepConfig, args: Args, reader: Box<dyn BufRea
         let line = line?;
         let captures: Vec<(usize, usize)> = neural_regex
             .find_iter(line.as_str())
-            .map(|cap| cap.unwrap())
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .with_context(|| format!("Regex matching failed on line {}", inx + 1))?
+            .into_iter()
             .map(|cap| (cap.start(), cap.end()))
             .collect();
 

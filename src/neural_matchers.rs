@@ -59,7 +59,7 @@ impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
             ));
         }
 
-        let matcher = EmbedNeuralMatcher::new(model.clone(), value, threshold);
+        let matcher = EmbedNeuralMatcher::new(model.clone(), value, threshold)?;
         Ok(Arc::new(matcher))
     }
 }
@@ -72,25 +72,31 @@ struct EmbedNeuralMatcher {
 }
 
 impl EmbedNeuralMatcher {
-    fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Self {
-        let embedding = model
-            .embed(value)
-            .expect(&format!("Can't embed value: {}", value));
+    fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Result<Self, Error> {
+        let embedding = model.embed(value).map_err(|err| {
+            Error::new(
+                ErrorKind::InvalidInput,
+                format!("Can't embed value '{value}': {err:?}"),
+            )
+        })?;
 
         let matcher = Box::new(CosineMatcher::new(threshold));
 
-        Self {
+        Ok(Self {
             model,
             embedding,
             matcher,
-        }
+        })
     }
 }
 
 impl NeuralMatcher for EmbedNeuralMatcher {
     fn is_match(&self, text: &str) -> bool {
         match self.model.embed(text) {
-            Ok(text_embed) => self.matcher.is_match(&self.embedding, &text_embed).unwrap(),
+            Ok(text_embed) => self
+                .matcher
+                .is_match(&self.embedding, &text_embed)
+                .unwrap_or(false),
             Err(_) => return false,
         }
     }

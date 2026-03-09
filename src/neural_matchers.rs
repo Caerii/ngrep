@@ -52,13 +52,6 @@ impl NeuralMatcherFactory for EmbedNeuralMatcherFactory {
             )
         })?;
 
-        if !model.has_prefix(value) {
-            return Err(Error::new(
-                ErrorKind::InvalidInput,
-                format!("Embedding not found for '{}'", value),
-            ));
-        }
-
         let matcher = EmbedNeuralMatcher::new(model.clone(), value, threshold)?;
         Ok(Arc::new(matcher))
     }
@@ -72,13 +65,50 @@ struct EmbedNeuralMatcher {
 }
 
 impl EmbedNeuralMatcher {
-    fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Result<Self, Error> {
-        let embedding = model.embed(value).map_err(|err| {
-            Error::new(
+    fn build_query_embedding(model: &dyn Embed, value: &str) -> Result<Embedding, Error> {
+        let chunks: Vec<&str> = value.split("::").map(str::trim).collect();
+        if chunks.is_empty() || chunks.iter().any(|chunk| chunk.is_empty()) {
+            return Err(Error::new(
                 ErrorKind::InvalidInput,
-                format!("Can't embed value '{value}': {err:?}"),
-            )
-        })?;
+                format!("Invalid neural query '{value}'"),
+            ));
+        }
+
+        let mut query: Option<Embedding> = None;
+        for chunk in &chunks {
+            let embedding = model.embed(chunk).map_err(|err| {
+                Error::new(
+                    ErrorKind::InvalidInput,
+                    format!("Can't embed value '{}': {err:?}", chunk),
+                )
+            })?;
+
+            query = Some(match query {
+                Some(acc) => (&acc + &embedding).map_err(|err| {
+                    Error::new(
+                        ErrorKind::Other,
+                        format!("Error combining neural query '{value}': {err}"),
+                    )
+                })?,
+                None => embedding,
+            });
+        }
+
+        let query = query.expect("query chunks are never empty");
+        if chunks.len() > 1 {
+            query.affine(1.0 / chunks.len() as f64, 0.0).map_err(|err| {
+                Error::new(
+                    ErrorKind::Other,
+                    format!("Error averaging neural query '{value}': {err}"),
+                )
+            })
+        } else {
+            Ok(query)
+        }
+    }
+
+    fn new(model: Arc<dyn Embed>, value: &str, threshold: f64) -> Result<Self, Error> {
+        let embedding = Self::build_query_embedding(model.as_ref(), value)?;
 
         let matcher = Box::new(CosineMatcher::new(threshold));
 

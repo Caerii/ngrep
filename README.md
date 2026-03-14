@@ -39,18 +39,17 @@ ngrep --help
 ```
 
 After `ngrep` is installed you have to import some Word Embeddings model to start matching.
-Follow these steps to download the English FastText embeddings:
+Follow these steps to download and import the English FastText embeddings:
 
 ```bash
-curl https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.vec.gz
-gzip -d cc.en.300.vec.gz
+wget -qO- https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.vec.gz | gunzip > cc.en.300.vec
+ngrep import cc.en.300.vec ften
 ```
 
-Then import and use them:
+Match with:
 
 ```bash
-ngrep import cc.en.300.vec ften
-echo 'hello world' | ngrep '~(hey)+ ~(planet)+'
+echo 'a standard example is: hello world' | ngrep '~(hey)+ ~(planet)+'
 ```
 
 Alternatively you can import any embeddings in the `txt` format and configure the default model with `ngrep config`. You can import multiple models and switch between them with `ngrep config` or `--model`, but only one model is used at a time for matching:

@@ -38,7 +38,18 @@ cargo install --path .
 ngrep --help
 ```
 
-After `ngrep` is installed you have to import some Word Embeddings model to start matching.
+## Build (no install)
+
+If you prefer to build locally without installing, run:
+
+```bash
+cargo build --release
+./target/release/ngrep --help
+```
+
+Then use `./target/release/ngrep` in the commands below instead of `ngrep`.
+
+After `ngrep` is available you have to import some Word Embeddings model to start matching.
 Follow these steps to download and import the English FastText embeddings:
 
 ```bash

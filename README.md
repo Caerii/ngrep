@@ -4,7 +4,7 @@
 
 ---
 
-`ngrep` is an experimental PoC that lets you find text by meaning rather than by syntactic matching. The core question is simple: _what happens when regular expressions are enriched with a small bit of semantics via Word Embeddings?_
+`ngrep` is an experimental PoC for finding text by meaning rather than literal matching. The core question is simple: _what happens when regular expressions are enriched with a small bit of semantics via Word Embeddings?_
 
 `ngrep` explores that idea with a familiar grep interface, extending regex with a new neural operator `~` while keeping the rest of the language intact. It supports the major regex features you already use (including lookarounds like negative lookahead), so you can combine semantic and literal patterns in one expression, built on top of the fantastic [🦀 fancy-regex](https://github.com/fancy-regex/fancy-regex).
 

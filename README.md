@@ -77,28 +77,28 @@ To give you a glimpse of the current performance, it takes about ~18s to find th
 
 ```
 wget -q https://raw.githubusercontent.com/massimo-nazaria/bash-textgen/refs/heads/main/moby-dick.txt
-time ngrep -o '~(big)+ \b~(animal;0.35)+\b' moby-dick.txt | sort | uniq -c | sort -n
-   1 big whale
-   1 enormous creature
-   1 enormous creatures
-   1 gigantic creature
-   1 gigantic fish
-   1 great dromedary
-   1 great hunting
-   1 huge elephant
-   1 huge reptile
-   1 large herd
-   1 little cannibal
-   1 small cub
-   1 small fish
-   1 tremendous whale
-   2 great fish
-   3 great monster
-   3 large whale
-   5 great whales
+time ngrep -o '~(big)+ \b~(animal;0.35)+\b' moby-dick.txt | sort | uniq -c | sort -rn
    7 great whale
+   5 great whales
+   3 large whale
+   3 great monster
+   2 great fish
+   1 tremendous whale
+   1 small fish
+   1 small cub
+   1 little cannibal
+   1 large herd
+   1 huge reptile
+   1 huge elephant
+   1 great hunting
+   1 great dromedary
+   1 gigantic fish
+   1 gigantic creature
+   1 enormous creatures
+   1 enormous creature
+   1 big whale
 
 real	0m17.291s
 user	0m16.577s
-sys	  0m0.726s
+sys	    0m0.726s
 ```

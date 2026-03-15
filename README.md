@@ -66,8 +66,8 @@ echo 'a standard example is: hello world' | ngrep '~(hey)+ ~(planet)+'
 Alternatively you can import any embeddings in the `txt` format and configure the default model with `ngrep config`. You can import multiple models and switch between them with `ngrep config` or `--model`, but only one model is used at a time for matching:
 
 - [FastText Word vectors for 157 languages](https://fasttext.cc/docs/en/crawl-vectors.html#models)
-- [Wikipedia2Vec with ENTITY vectors](https://wikipedia2vec.github.io/wikipedia2vec/pretrained/)
-- [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/projects/glove/)
+- [Wikipedia2Vec with ENTITY vectors:](https://wikipedia2vec.github.io/wikipedia2vec/pretrained/) Offers multiple dimensionality options (100, 300, or 500) and provides language-specific pretrained models that support entity vectors via `ENTITY/<topic>` tokens.
+- [GloVe: Global Vectors for Word Representation:](https://nlp.stanford.edu/projects/glove/) Other than being high quality, notably offers 50-dimensional vectors that are very fast to load (though slightly less precise).
 
 ## A note on performance
 
